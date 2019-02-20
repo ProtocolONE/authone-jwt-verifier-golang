@@ -1,4 +1,4 @@
-package login
+package jwtverifier
 
 import (
 	"github.com/stretchr/testify/suite"
