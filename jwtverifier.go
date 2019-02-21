@@ -326,12 +326,7 @@ func (j *JwtVerifier) getTokenStorage() (storage.Adapter, error) {
 	if j.storage != nil {
 		return j.storage, nil
 	}
-
-	var (
-		maxSize      int64  = 5000
-		itemsToPrune uint32 = 500
-	)
-	j.storage = memory.NewStogare(maxSize, itemsToPrune)
+	j.storage = memory.NewStorage(map[string]interface{}{})
 	if j.storage == nil {
 		return nil, errors.New("token storage cannot be empty")
 	}

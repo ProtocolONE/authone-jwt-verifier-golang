@@ -15,10 +15,34 @@ type tokenStorageMemory struct {
 	key   string
 }
 
-func NewStogare(maxSize int64, itemsToPrune uint32) storage.Adapter {
+// Create memory storage with options:
+// maxSize - the maximum number size to store in the cache (default: 5000)
+// itemsToPrune - the number of items to prune when we hit MaxSize (default: 500)
+// getsPerPromote - the number of times an item is fetched before we promote it (default: 3)
+//
+// More information at https://github.com/karlseguin/ccache
+func NewStorage(options map[string]interface{}) storage.Adapter {
+	conf := ccache.Configure()
+	var (
+		maxSize        int64  = 5000
+		itemsToPrune   uint32 = 100
+		getsPerPromote int32  = 3
+	)
+	if val, ok := options["maxSize"]; ok {
+		maxSize = val.(int64)
+	}
+	if val, ok := options["itemsToPrune"]; ok {
+		itemsToPrune = val.(uint32)
+	}
+	if val, ok := options["getsPerPromote"]; ok {
+		getsPerPromote = val.(int32)
+	}
+	conf.MaxSize(maxSize)
+	conf.ItemsToPrune(itemsToPrune)
+	conf.GetsPerPromote(getsPerPromote)
 	return tokenStorageMemory{
-		cache: ccache.New(ccache.Configure().MaxSize(int64(maxSize)).ItemsToPrune(itemsToPrune)),
-		key:   "a_t_s_%s",
+		cache: ccache.New(conf),
+		key:   "a_t_s:%s",
 	}
 }
 

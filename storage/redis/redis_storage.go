@@ -15,7 +15,7 @@ type redisStorage struct {
 }
 
 func NewStorage(c *redis.Client) storage.Adapter {
-	return redisStorage{redis: c, key: "a_t_s_%s"}
+	return redisStorage{redis: c, key: "a_t_s:%s"}
 }
 
 func (tsr *redisStorage) buildKey(t string) string {
