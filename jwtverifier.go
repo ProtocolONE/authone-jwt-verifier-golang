@@ -51,7 +51,10 @@ type Config struct {
 
 // An additional option for authentication form URL
 type AuthUrlOption struct {
-	Key   string
+	// Key defines key for oauth2 url option
+	Key string
+
+	// Value defines value for oauth2 url option
 	Value string
 }
 
@@ -101,21 +104,21 @@ func NewJwtVerifier(config Config, options ...interface{}) *JwtVerifier {
 			TokenURL: config.Endpoint.TokenURL,
 		},
 	}
-
-	for i := range options {
-		if st, ok := options[i].(storage.Adapter); ok {
-			return &JwtVerifier{
-				config:  &config,
-				oauth2:  conf,
-				storage: st,
-			}
-		}
-	}
-
-	return &JwtVerifier{
+	j := &JwtVerifier{
 		config: &config,
 		oauth2: conf,
 	}
+
+	for i := range options {
+		if st, ok := options[i].(storage.Adapter); ok {
+			j.storage = st
+		}
+	}
+	if j.storage == nil {
+		j.storage = memory.NewStorage(&memory.Config{})
+	}
+
+	return j
 }
 
 // Set storage adapter for the introspection token.
@@ -178,7 +181,7 @@ func (j *JwtVerifier) Exchange(ctx context.Context, code string) (*internal.Toke
 // Uses token storage for temporary storage of tokens. If the token has expired or it has been revoked,
 // the information will be deleted from the temporary storage.
 func (j *JwtVerifier) Introspect(ctx context.Context, token string) (*internal.IntrospectToken, error) {
-	if introspect, _ := j.getIntrospectFromStorage(token); introspect != nil {
+	if introspect, _ := j.storage.Get(token); introspect != nil {
 		return introspect, nil
 	}
 
@@ -192,7 +195,7 @@ func (j *JwtVerifier) Introspect(ctx context.Context, token string) (*internal.I
 	if j.config.ClientID != introspect.ClientID {
 		return nil, errors.New("token is owned by another client")
 	}
-	if err := j.saveIntrospectToStorage(token, introspect); err != nil {
+	if err := j.storage.Set(token, introspect); err != nil {
 		return nil, err
 	}
 	return introspect, nil
@@ -299,11 +302,7 @@ func (j *JwtVerifier) getUserInfo(ctx context.Context, t string, userInfoURL str
 }
 
 func (j *JwtVerifier) revokeToken(ctx context.Context, token string, revokeUrl string) error {
-	s, err := j.getTokenStorage()
-	if err != nil {
-		return err
-	}
-	if err := s.Delete(token); err != nil {
+	if err := j.storage.Delete(token); err != nil {
 		return err
 	}
 
@@ -322,32 +321,4 @@ func (j *JwtVerifier) revokeToken(ctx context.Context, token string, revokeUrl s
 	}
 
 	return nil
-}
-
-func (j *JwtVerifier) getTokenStorage() (storage.Adapter, error) {
-	if j.storage != nil {
-		return j.storage, nil
-	}
-	j.storage = memory.NewStorage(map[string]interface{}{})
-	if j.storage == nil {
-		return nil, errors.New("token storage cannot be empty")
-	}
-	return j.storage, nil
-}
-
-func (j *JwtVerifier) getIntrospectFromStorage(token string) (*internal.IntrospectToken, error) {
-	s, err := j.getTokenStorage()
-	if err != nil {
-		return nil, err
-	}
-	t, err := s.Get(token)
-	return t, err
-}
-
-func (j *JwtVerifier) saveIntrospectToStorage(token string, source *internal.IntrospectToken) error {
-	s, err := j.getTokenStorage()
-	if err != nil {
-		return err
-	}
-	return s.Set(token, source)
 }

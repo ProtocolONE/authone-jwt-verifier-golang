@@ -19,8 +19,23 @@ type redisStorage struct {
 	key   string
 }
 
-func NewStorage(c *redis.Client) storage.Adapter {
-	return redisStorage{redis: c, key: "a_t_s:%s"}
+type Config struct {
+	// Client defines the redis client
+	Client *redis.Client
+
+	// Key defines of storage key
+	Key string
+}
+
+func NewStorage(conf *Config) (storage.Adapter, error) {
+	var key = "a_t_s:%s"
+	if conf.Client == nil {
+		return nil, errors.New("redis client must be defined")
+	}
+	if conf.Key != "" {
+		key = conf.Key
+	}
+	return redisStorage{redis: conf.Client, key: key}, nil
 }
 
 func (tsr *redisStorage) buildKey(t string) string {

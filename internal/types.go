@@ -6,9 +6,11 @@ import (
 	"net/http"
 )
 
-// Repeats the structure of the Introspect Token object described in the Hydra documentation.
-// https://www.ory.sh/docs/hydra/sdk/api#schemaoauth2tokenintrospection
-// https://www.iana.org/assignments/jwt/jwt.xhtml
+// IntrospectToken repeats the structure of the Introspect Token object described in the Hydra documentation.
+//
+// See more at:
+// - https://www.ory.sh/docs/hydra/sdk/api#schemaoauth2tokenintrospection
+// - https://www.iana.org/assignments/jwt/jwt.xhtml
 type IntrospectToken struct {
 	Active    bool     `json:"active"`
 	Aud       []string `json:"aud"`
@@ -22,8 +24,10 @@ type IntrospectToken struct {
 	TokenType string   `json:"token_type"`
 }
 
-// Based at JWT claims.
-// https://www.iana.org/assignments/jwt/jwt.xhtml
+// IdToken based at JWT claims.
+//
+// See more at:
+// - https://www.iana.org/assignments/jwt/jwt.xhtml
 type IdToken struct {
 	AtHash   string   `json:"at_hash"`
 	Aud      []string `json:"aud"`
@@ -37,16 +41,20 @@ type IdToken struct {
 	Sub      string   `json:"sub"`
 }
 
-// Based at JWT claims.
-// https://www.iana.org/assignments/jwt/jwt.xhtml
+// UserInfo based at JWT claims.
+//
+// See more at:
+// - https://www.iana.org/assignments/jwt/jwt.xhtml
 type UserInfo struct {
 	UserID string `json:"sub"`
 }
 
+// Token defined structure of oauth2.Token
 type Token struct {
 	*oauth2.Token
 }
 
+// RetrieveError defined the structure of the error response to the oauth server
 type RetrieveError struct {
 	Response *http.Response
 	Body     []byte

@@ -84,8 +84,9 @@ func TestDeleteToken(t *testing.T) {
 }
 
 func createStorage(maxSize int, itemsToPrune int) storage.Adapter {
-	return NewStorage(map[string]interface{}{
-		OptionMaxSize:      int64(maxSize),
-		OptionItemsToPrune: uint32(itemsToPrune),
-	})
+	conf := &Config{
+		MaxSize:      int64(maxSize),
+		ItemsToPrune: uint32(itemsToPrune),
+	}
+	return NewStorage(conf)
 }

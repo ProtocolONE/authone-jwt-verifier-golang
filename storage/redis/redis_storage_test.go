@@ -67,8 +67,40 @@ func TestGetUnExistsToken(t *testing.T) {
 	}
 }
 
+func TestCreateClientWithoutRedis(t *testing.T) {
+	if _, err := NewStorage(&Config{}); err == nil {
+		t.Error("Creating a store without redis should return an error")
+	}
+}
+
+func TestRedeclareStorageKey(t *testing.T) {
+	st1 := createStorage()
+	tName := fmt.Sprintf("%d", time.Now().UnixNano())
+	token := &internal.IntrospectToken{
+		Sub: tName,
+		Exp: time.Now().Add(60 * time.Second).Unix(),
+	}
+	st1.Set(tName, token)
+
+	conf := &Config{
+		Client: redis.NewClient(&redis.Options{
+			Addr: "localhost:6379",
+		}),
+		Key: tName + ":%s",
+	}
+	st2, _ := NewStorage(conf)
+	tok, _ := st2.Get(tName)
+	if tok != nil {
+		t.Log("Token should not be returned, it is on a different key")
+	}
+}
+
 func createStorage() storage.Adapter {
-	return NewStorage(redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
-	}))
+	conf := &Config{
+		Client: redis.NewClient(&redis.Options{
+			Addr: "localhost:6379",
+		}),
+	}
+	st, _ := NewStorage(conf)
+	return st
 }

@@ -24,33 +24,42 @@ type tokenStorageMemory struct {
 	key   string
 }
 
-// Create memory storage with options:
-// maxSize(int64) - the maximum number size to store in the cache (default: 5000)
-// itemsToPrune(uint32) - the number of items to prune when we hit MaxSize (default: 500)
-// getsPerPromote(int32) - the number of times an item is fetched before we promote it (default: 3)
+// Config defines configuration of storage
 //
 // More information at https://github.com/karlseguin/ccache
-func NewStorage(options map[string]interface{}) storage.Adapter {
-	conf := ccache.Configure()
+type Config struct {
+	// MaxSize defines maximum number size to store in the cache (default: 5000)
+	MaxSize int64
+
+	// ItemsToPrune defines number of items to prune when we hit MaxSize (default: 500)
+	ItemsToPrune uint32
+
+	// GetsPerPromote defines number of times an item is fetched before we promote it (default: 3)
+	GetsPerPromote int32
+}
+
+func NewStorage(conf *Config) storage.Adapter {
+	cconf := ccache.Configure()
 	var (
 		maxSize        int64  = 5000
 		itemsToPrune   uint32 = 100
 		getsPerPromote int32  = 3
 	)
-	if val, ok := options[OptionMaxSize]; ok {
-		maxSize = val.(int64)
+	if conf.MaxSize != 0 {
+		maxSize = conf.MaxSize
 	}
-	if val, ok := options[OptionItemsToPrune]; ok {
-		itemsToPrune = val.(uint32)
+	if conf.ItemsToPrune != 0 {
+		itemsToPrune = conf.ItemsToPrune
 	}
-	if val, ok := options[OptionGetsPerPromote]; ok {
-		getsPerPromote = val.(int32)
+	if conf.GetsPerPromote != 0 {
+		getsPerPromote = conf.GetsPerPromote
 	}
-	conf.MaxSize(maxSize)
-	conf.ItemsToPrune(itemsToPrune)
-	conf.GetsPerPromote(getsPerPromote)
+
+	cconf.MaxSize(maxSize)
+	cconf.ItemsToPrune(itemsToPrune)
+	cconf.GetsPerPromote(getsPerPromote)
 	return tokenStorageMemory{
-		cache: ccache.New(conf),
+		cache: ccache.New(cconf),
 		key:   "a_t_s:%s",
 	}
 }
