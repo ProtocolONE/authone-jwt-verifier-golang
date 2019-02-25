@@ -1,15 +1,16 @@
-package memory
+package redis
 
 import (
 	"fmt"
 	"github.com/ProtocolONE/authone-jwt-verifier-golang/internal"
 	"github.com/ProtocolONE/authone-jwt-verifier-golang/storage"
+	"github.com/go-redis/redis"
 	"testing"
 	"time"
 )
 
 func TestSetAndGetToken(t *testing.T) {
-	st := createStorage(1, 1)
+	st := createStorage()
 	tName := fmt.Sprintf("%d", time.Now().UnixNano())
 	token := &internal.IntrospectToken{
 		Sub: tName,
@@ -29,29 +30,31 @@ func TestSetAndGetToken(t *testing.T) {
 }
 
 func TestExpireToken(t *testing.T) {
-	st := createStorage(1, 1)
+	st := createStorage()
 	tName := fmt.Sprintf("%d", time.Now().UnixNano())
 	token := &internal.IntrospectToken{
 		Sub: tName,
-		Exp: time.Now().Add(time.Second).Unix() - 1,
+		Exp: time.Now().Add(time.Second).Unix(),
 	}
 	if err := st.Set(tName, token); err != nil {
-		t.Log("Unable to add token")
+		t.Error("Unable to add token")
 	}
 
-	_, err := st.Get(tName)
+	time.Sleep(time.Second * 1)
+	tss, err := st.Get(tName)
 	if err == nil {
+		fmt.Printf("tok: %+v\n", tss)
 		t.Error("An expired token should not be received")
 		return
 	}
-	if err.Error() != ErrorTokenIsExpired {
-		t.Errorf("Invalid error status [%s], must be [%s]", err.Error(), ErrorTokenIsExpired)
+	if err.Error() != ErrorTokenNotExists {
+		t.Errorf("Invalid error status [%s], must be [%s]", err.Error(), ErrorTokenNotExists)
 		return
 	}
 }
 
 func TestGetUnExistsToken(t *testing.T) {
-	st := createStorage(1, 1)
+	st := createStorage()
 	tName := "unexiststoken"
 	_, err := st.Get(tName)
 	if err == nil {
@@ -64,28 +67,8 @@ func TestGetUnExistsToken(t *testing.T) {
 	}
 }
 
-func TestDeleteToken(t *testing.T) {
-	st := createStorage(1, 1)
-	tName := fmt.Sprintf("%d", time.Now().UnixNano())
-	token := &internal.IntrospectToken{
-		Sub: tName,
-		Exp: time.Now().Add(5 * time.Second).Unix(),
-	}
-	if err := st.Set(tName, token); err != nil {
-		t.Log("Unable to add token")
-	}
-	if err := st.Delete(tName); err != nil {
-		t.Log("Unable to delete token")
-	}
-
-	if _, err := st.Get(tName); err.Error() != ErrorTokenNotExists {
-		t.Error("Token has not been deleted")
-	}
-}
-
-func createStorage(maxSize int, itemsToPrune int) storage.Adapter {
-	return NewStorage(map[string]interface{}{
-		OptionMaxSize:      int64(maxSize),
-		OptionItemsToPrune: uint32(itemsToPrune),
-	})
+func createStorage() storage.Adapter {
+	return NewStorage(redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	}))
 }

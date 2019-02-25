@@ -1,4 +1,4 @@
-package jwtverifier
+package internal
 
 import (
 	"fmt"
