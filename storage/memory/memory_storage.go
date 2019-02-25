@@ -1,85 +1,44 @@
 package memory
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ProtocolONE/authone-jwt-verifier-golang/internal"
 	"github.com/ProtocolONE/authone-jwt-verifier-golang/storage"
 	"github.com/karlseguin/ccache"
 	"time"
 )
 
 const (
-	OptionMaxSize        = "maxSize"
-	OptionItemsToPrune   = "itemsToPrune"
-	OptionGetsPerPromote = "getsPerPromote"
-
 	ErrorTokenNotExists = "token not exists"
 	ErrorTokenIsExpired = "token is expired"
+	MaxSize             = 5000
+	PruneLimit          = 500
+	PromoteLimit        = 3
 )
 
 type tokenStorageMemory struct {
 	cache *ccache.Cache
-	key   string
 }
 
-// Config defines configuration of storage
-//
-// More information at https://github.com/karlseguin/ccache
-type Config struct {
-	// MaxSize defines maximum number size to store in the cache (default: 5000)
-	MaxSize int64
+func NewStorage(maxSize int64, pruneLimit uint32, promoteLimit int32) storage.Adapter {
+	conf := ccache.Configure()
+	conf.MaxSize(maxSize)
+	conf.ItemsToPrune(pruneLimit)
+	conf.GetsPerPromote(promoteLimit)
 
-	// ItemsToPrune defines number of items to prune when we hit MaxSize (default: 500)
-	ItemsToPrune uint32
-
-	// GetsPerPromote defines number of times an item is fetched before we promote it (default: 3)
-	GetsPerPromote int32
-}
-
-func NewStorage(conf *Config) storage.Adapter {
-	cconf := ccache.Configure()
-	var (
-		maxSize        int64  = 5000
-		itemsToPrune   uint32 = 100
-		getsPerPromote int32  = 3
-	)
-	if conf.MaxSize != 0 {
-		maxSize = conf.MaxSize
-	}
-	if conf.ItemsToPrune != 0 {
-		itemsToPrune = conf.ItemsToPrune
-	}
-	if conf.GetsPerPromote != 0 {
-		getsPerPromote = conf.GetsPerPromote
-	}
-
-	cconf.MaxSize(maxSize)
-	cconf.ItemsToPrune(itemsToPrune)
-	cconf.GetsPerPromote(getsPerPromote)
 	return tokenStorageMemory{
-		cache: ccache.New(cconf),
-		key:   "a_t_s:%s",
+		cache: ccache.New(conf),
 	}
 }
 
-func (tsm *tokenStorageMemory) buildKey(t string) string {
-	return fmt.Sprintf(tsm.key, t)
-}
-
-func (tsm tokenStorageMemory) Set(token string, introspect *internal.IntrospectToken) error {
-	duration := time.Unix(introspect.Exp, 0).Sub(time.Now())
-	b, err := json.Marshal(introspect)
-	if err != nil {
-		return err
-	}
-	tsm.cache.Set(tsm.buildKey(token), b, duration)
+func (tsm tokenStorageMemory) Set(token string, expire int64, introspect []byte) error {
+	duration := time.Unix(expire, 0).Sub(time.Now())
+	tsm.cache.Set(token, introspect, duration)
 	return nil
 }
 
-func (tsm tokenStorageMemory) Get(token string) (*internal.IntrospectToken, error) {
-	item := tsm.cache.Get(tsm.buildKey(token))
+func (tsm tokenStorageMemory) Get(token string) ([]byte, error) {
+	item := tsm.cache.Get(token)
 	if item == nil {
 		return nil, errors.New(ErrorTokenNotExists)
 	}
@@ -87,14 +46,14 @@ func (tsm tokenStorageMemory) Get(token string) (*internal.IntrospectToken, erro
 		_ = tsm.Delete(token)
 		return nil, errors.New(ErrorTokenIsExpired)
 	}
-	it := &internal.IntrospectToken{}
-	if err := json.Unmarshal(item.Value().([]byte), it); err != nil {
-		return nil, err
-	}
-	return it, nil
+	v := fmt.Sprintf("%s", item.Value())
+	return []byte(v), nil
 }
 
 func (tsm tokenStorageMemory) Delete(token string) error {
-	tsm.cache.Delete(tsm.buildKey(token))
+	if tsm.cache.Delete(token) == false {
+		return fmt.Errorf("unable to delete token [%s] from cache", token)
+	}
+
 	return nil
 }

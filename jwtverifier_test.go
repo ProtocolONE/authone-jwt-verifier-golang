@@ -2,7 +2,6 @@ package jwtverifier
 
 import (
 	"context"
-	"github.com/ProtocolONE/authone-jwt-verifier-golang/internal"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -12,10 +11,10 @@ import (
 
 type FakeStorageAdapter struct{}
 
-func (a *FakeStorageAdapter) Set(token string, introspect *internal.IntrospectToken) error {
+func (a *FakeStorageAdapter) Set(token string, exp int64, introspect []byte) error {
 	return nil
 }
-func (a *FakeStorageAdapter) Get(t string) (*internal.IntrospectToken, error) {
+func (a *FakeStorageAdapter) Get(t string) ([]byte, error) {
 	return nil, nil
 }
 func (a *FakeStorageAdapter) Delete(token string) error {
@@ -145,7 +144,7 @@ func TestRevoke(t *testing.T) {
 	jwt := createJwtVerifier(ts.URL)
 	err := jwt.Revoke(context.Background(), "token")
 	if err != nil {
-		t.Error("unable to revoke token")
+		t.Errorf("unable to revoke token: %s", err.Error())
 	}
 }
 

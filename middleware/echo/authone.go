@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"github.com/ProtocolONE/authone-jwt-verifier-golang"
-	"github.com/ProtocolONE/authone-jwt-verifier-golang/internal"
 	"github.com/labstack/echo"
 	"net/http"
 	"regexp"
@@ -43,7 +42,7 @@ func AuthOneJwtWithConfig(cfg *jwtverifier.JwtVerifier) echo.MiddlewareFunc {
 				}
 			}
 
-			c.Set("user", &internal.UserInfo{UserID: token.Sub})
+			c.Set("user", &jwtverifier.UserInfo{UserID: token.Sub})
 			return next(c)
 		}
 	}

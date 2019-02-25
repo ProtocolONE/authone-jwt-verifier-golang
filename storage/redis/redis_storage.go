@@ -1,10 +1,8 @@
 package redis
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ProtocolONE/authone-jwt-verifier-golang/internal"
 	"github.com/ProtocolONE/authone-jwt-verifier-golang/storage"
 	"github.com/go-redis/redis"
 	"time"
@@ -19,48 +17,42 @@ type redisStorage struct {
 	key   string
 }
 
-type Config struct {
-	// Client defines the redis client
-	Client *redis.Client
-
-	// Key defines of storage key
-	Key string
-}
-
-func NewStorage(conf *Config) (storage.Adapter, error) {
-	var key = "a_t_s:%s"
-	if conf.Client == nil {
-		return nil, errors.New("redis client must be defined")
+func NewStorage(client *redis.Client, options ...interface{}) (storage.Adapter, error) {
+	key := "jwt:%s"
+	if len(options) > 0 {
+		switch options[0].(type) {
+		case string:
+			key = options[0].(string)
+		default:
+			panic("Invalid options type for namespace")
+		}
 	}
-	if conf.Key != "" {
-		key = conf.Key
-	}
-	return redisStorage{redis: conf.Client, key: key}, nil
+
+	return redisStorage{redis: client, key: key}, nil
 }
 
 func (tsr *redisStorage) buildKey(t string) string {
 	return fmt.Sprintf(tsr.key, t)
 }
 
-func (tsr redisStorage) Set(token string, introspect *internal.IntrospectToken) error {
-	duration := time.Unix(introspect.Exp, 0).Sub(time.Now())
-	b, err := json.Marshal(introspect)
-	if err != nil {
-		return err
+func (tsr redisStorage) Set(token string, expire int64, introspect []byte) error {
+	duration := time.Unix(expire, 0).Sub(time.Now())
+	if err := tsr.redis.Set(tsr.buildKey(token), introspect, duration); err.Err() != nil {
+		return err.Err()
 	}
-	err2 := tsr.redis.Set(tsr.buildKey(token), b, duration)
-	return err2.Err()
+	return nil
 }
 
-func (tsr redisStorage) Get(token string) (*internal.IntrospectToken, error) {
+func (tsr redisStorage) Get(token string) ([]byte, error) {
 	res := tsr.redis.Get(tsr.buildKey(token))
 	if res.Err() != nil {
 		return nil, errors.New(ErrorTokenNotExists)
 	}
-	b, _ := res.Bytes()
-	it := &internal.IntrospectToken{}
-	err := json.Unmarshal(b, it)
-	return it, err
+	b, err := res.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	return b, err
 }
 
 func (tsr redisStorage) Delete(token string) error {

@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"github.com/ProtocolONE/authone-jwt-verifier-golang"
-	"github.com/ProtocolONE/authone-jwt-verifier-golang/internal"
 	_ "github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo"
 	_ "github.com/lestrrat-go/jwx/jwt"
@@ -71,7 +70,7 @@ func TestAuthOneJwtWithConfig(t *testing.T) {
 		jwtv := jwtverifier.NewJwtVerifier(tc.config)
 		h := AuthOneJwtWithConfig(jwtv)(handler)
 		if assert.NoError(t, h(c), tc.info) {
-			user := c.Get("user").(*internal.UserInfo)
+			user := c.Get("user").(*jwtverifier.UserInfo)
 			assert.Equal(t, user.UserID, "1234567890")
 		}
 	}

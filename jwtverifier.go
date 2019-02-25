@@ -20,6 +20,7 @@ import (
 	"strings"
 )
 
+// JwtVerifier used to interact with AuthOne authorization server.
 type JwtVerifier struct {
 	config  *Config
 	oauth2  *oauth2.Config
@@ -49,7 +50,7 @@ type Config struct {
 	Endpoint Endpoint
 }
 
-// An additional option for authentication form URL
+// AuthUrlOption contains an additional option for authentication form URL.
 type AuthUrlOption struct {
 	// Key defines key for oauth2 url option
 	Key string
@@ -93,6 +94,7 @@ type Endpoint struct {
 	RevokeUrl string
 }
 
+// NewJwtVerifier create new instance of verifier with given configuration.
 func NewJwtVerifier(config Config, options ...interface{}) *JwtVerifier {
 	conf := &oauth2.Config{
 		ClientID:     config.ClientID,
@@ -104,6 +106,7 @@ func NewJwtVerifier(config Config, options ...interface{}) *JwtVerifier {
 			TokenURL: config.Endpoint.TokenURL,
 		},
 	}
+
 	j := &JwtVerifier{
 		config: &config,
 		oauth2: conf,
@@ -114,20 +117,21 @@ func NewJwtVerifier(config Config, options ...interface{}) *JwtVerifier {
 			j.storage = st
 		}
 	}
+
 	if j.storage == nil {
-		j.storage = memory.NewStorage(&memory.Config{})
+		j.storage = memory.NewStorage(memory.MaxSize, memory.PruneLimit, memory.PromoteLimit)
 	}
 
 	return j
 }
 
-// Set storage adapter for the introspection token.
+// SetStorage allow to set adapter for the introspection token.
 // See available adapters in the storage folder.
 func (j *JwtVerifier) SetStorage(a storage.Adapter) {
 	j.storage = a
 }
 
-// Create a URL to send the user to the initial authentication step.
+// CreateAuthUrl create an URL to send the user to the initial authentication step.
 func (j *JwtVerifier) CreateAuthUrl(state string, options ...AuthUrlOption) string {
 	var buf bytes.Buffer
 	buf.WriteString(j.config.Endpoint.AuthURL)
@@ -153,7 +157,6 @@ func (j *JwtVerifier) CreateAuthUrl(state string, options ...AuthUrlOption) stri
 		buf.WriteByte('?')
 	}
 	buf.WriteString(v.Encode())
-	fmt.Printf("url: %+v\n", buf.String())
 	return buf.String()
 }
 
@@ -169,20 +172,25 @@ func (j *JwtVerifier) CreateAuthUrl(state string, options ...AuthUrlOption) stri
 //
 // Opts may include the PKCE verifier code if previously used in AuthCodeURL.
 // See https://www.oauth.com/oauth2-servers/pkce/ for more info.
-func (j *JwtVerifier) Exchange(ctx context.Context, code string) (*internal.Token, error) {
+func (j *JwtVerifier) Exchange(ctx context.Context, code string) (*Token, error) {
 	t, err := j.oauth2.Exchange(ctx, code)
 	if err != nil {
 		return nil, err
 	}
-	return &internal.Token{t}, nil
+	return &Token{t}, nil
 }
 
-// Check a token refresh or access is active or not. An active token is neither expired nor revoked.
+// Introspect check the token refresh or access is active or not. An active token is neither expired nor revoked.
 // Uses token storage for temporary storage of tokens. If the token has expired or it has been revoked,
 // the information will be deleted from the temporary storage.
-func (j *JwtVerifier) Introspect(ctx context.Context, token string) (*internal.IntrospectToken, error) {
-	if introspect, _ := j.storage.Get(token); introspect != nil {
-		return introspect, nil
+func (j *JwtVerifier) Introspect(ctx context.Context, token string) (*IntrospectToken, error) {
+	introspect := &IntrospectToken{}
+	if i, _ := j.storage.Get(token); i != nil {
+		if err := json.Unmarshal(i, introspect); err != nil {
+			return nil, err
+		} else {
+			return introspect, nil
+		}
 	}
 
 	introspect, err := j.getIntrospect(ctx, j.config.Endpoint.IntrospectURL, token)
@@ -195,20 +203,24 @@ func (j *JwtVerifier) Introspect(ctx context.Context, token string) (*internal.I
 	if j.config.ClientID != introspect.ClientID {
 		return nil, errors.New("token is owned by another client")
 	}
-	if err := j.storage.Set(token, introspect); err != nil {
-		return nil, err
+
+	if i, err := json.Marshal(introspect); err == nil {
+		if err := j.storage.Set(token, introspect.Exp, i); err != nil {
+			return nil, err
+		}
 	}
+
 	return introspect, nil
 }
 
-// Get user information via UserInfo endpoint with uses AccessToken by authenticate header.
+// GetUserInfo via UserInfo endpoint with uses AccessToken by authenticate header.
 // The claims are packaged in a JSON object where the sub member denotes the subject (end-user) identifier.
-func (j *JwtVerifier) GetUserInfo(ctx context.Context, token string) (*internal.UserInfo, error) {
+func (j *JwtVerifier) GetUserInfo(ctx context.Context, token string) (*UserInfo, error) {
 	return j.getUserInfo(ctx, token, j.config.Endpoint.UserInfoURL)
 }
 
-// Used to check the ID Token and returns its claims (as custom json object) in the event of its validity.
-func (j *JwtVerifier) ValidateIdToken(ctx context.Context, token string) (*internal.IdToken, error) {
+// ValidateIdToken used to check the ID Token and returns its claims (as custom json object) in the event of its validity.
+func (j *JwtVerifier) ValidateIdToken(ctx context.Context, token string) (*IdToken, error) {
 	// UNDONE: We must use application context
 	//token, err := j.
 	set, err := jwk.Fetch(j.config.Endpoint.JwksUrl)
@@ -221,7 +233,7 @@ func (j *JwtVerifier) ValidateIdToken(ctx context.Context, token string) (*inter
 	if err != nil {
 		return nil, err
 	}
-	t := &internal.IdToken{}
+	t := &IdToken{}
 	err = json.Unmarshal(verified, t)
 	if err != nil {
 		return nil, err
@@ -232,13 +244,13 @@ func (j *JwtVerifier) ValidateIdToken(ctx context.Context, token string) (*inter
 	return t, nil
 }
 
-// Use this method for invalidate the specified token and, if applicable, other tokens based on the same
+// Revoke used to invalidate the specified token and, if applicable, other tokens based on the same
 // authorisation grant.
 func (j *JwtVerifier) Revoke(ctx context.Context, token string) error {
 	return j.revokeToken(ctx, token, j.config.Endpoint.RevokeUrl)
 }
 
-func (j *JwtVerifier) getIntrospect(ctx context.Context, introspectURL string, token string) (*internal.IntrospectToken, error) {
+func (j *JwtVerifier) getIntrospect(ctx context.Context, introspectURL string, token string) (*IntrospectToken, error) {
 	form := url.Values{"token": {token}}
 	req, err := http.NewRequest("POST", introspectURL, strings.NewReader(form.Encode()))
 	if err != nil {
@@ -259,18 +271,18 @@ func (j *JwtVerifier) getIntrospect(ctx context.Context, introspectURL string, t
 		return nil, fmt.Errorf("oauth2: cannot fetch introspect token: %v", err)
 	}
 	if code := r.StatusCode; code < 200 || code > 299 {
-		return nil, &internal.RetrieveError{
+		return nil, &RetrieveError{
 			Response: r,
 			Body:     body,
 		}
 	}
 
-	t := &internal.IntrospectToken{}
+	t := &IntrospectToken{}
 	err = json.Unmarshal(body, t)
 	return t, err
 }
 
-func (j *JwtVerifier) getUserInfo(ctx context.Context, t string, userInfoURL string) (*internal.UserInfo, error) {
+func (j *JwtVerifier) getUserInfo(ctx context.Context, t string, userInfoURL string) (*UserInfo, error) {
 	req, err := http.NewRequest("GET", userInfoURL, strings.NewReader(""))
 	if err != nil {
 		return nil, err
@@ -290,22 +302,18 @@ func (j *JwtVerifier) getUserInfo(ctx context.Context, t string, userInfoURL str
 		return nil, fmt.Errorf("oauth2: cannot fetch user info: %v", err)
 	}
 	if code := r.StatusCode; code < 200 || code > 299 {
-		return nil, &internal.RetrieveError{
+		return nil, &RetrieveError{
 			Response: r,
 			Body:     body,
 		}
 	}
 
-	i := &internal.UserInfo{}
+	i := &UserInfo{}
 	err = json.Unmarshal(body, i)
 	return i, err
 }
 
 func (j *JwtVerifier) revokeToken(ctx context.Context, token string, revokeUrl string) error {
-	if err := j.storage.Delete(token); err != nil {
-		return err
-	}
-
 	form := url.Values{"token": {token}}
 	req, err := http.NewRequest("POST", revokeUrl, strings.NewReader(form.Encode()))
 	req.Header.Set("Accept", "application/json")
@@ -317,8 +325,9 @@ func (j *JwtVerifier) revokeToken(ctx context.Context, token string, revokeUrl s
 	defer r.Body.Close()
 
 	if code := r.StatusCode; code < 200 || code > 299 {
-		return &internal.RetrieveError{Response: r}
+		return &RetrieveError{Response: r}
 	}
 
+	j.storage.Delete(token)
 	return nil
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/ProtocolONE/authone-jwt-verifier-golang"
 	"github.com/ProtocolONE/authone-jwt-verifier-golang/example/nocache"
-	"github.com/ProtocolONE/authone-jwt-verifier-golang/internal"
 	jwt_middleware "github.com/ProtocolONE/authone-jwt-verifier-golang/middleware/echo"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
@@ -121,7 +120,7 @@ func authCallback(c echo.Context) error {
 	return nil
 }
 
-func introspect(c context.Context, token *internal.Token) error {
+func introspect(c context.Context, token *jwtverifier.Token) error {
 	t, err := jwtv.Introspect(c, token.AccessToken)
 	if err != nil {
 		return err
@@ -131,7 +130,7 @@ func introspect(c context.Context, token *internal.Token) error {
 	return nil
 }
 
-func userinfo(c context.Context, token *internal.Token) error {
+func userinfo(c context.Context, token *jwtverifier.Token) error {
 	info, err := jwtv.GetUserInfo(c, token.AccessToken)
 	if err != nil {
 		return err
@@ -140,7 +139,7 @@ func userinfo(c context.Context, token *internal.Token) error {
 	return nil
 }
 
-func validateIdToken(c context.Context, token *internal.Token) error {
+func validateIdToken(c context.Context, token *jwtverifier.Token) error {
 	id := token.Extra("id_token")
 	if id == nil {
 		fmt.Print("ID token is not required\n")

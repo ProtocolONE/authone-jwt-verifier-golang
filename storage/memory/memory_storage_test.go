@@ -2,7 +2,6 @@ package memory
 
 import (
 	"fmt"
-	"github.com/ProtocolONE/authone-jwt-verifier-golang/internal"
 	"github.com/ProtocolONE/authone-jwt-verifier-golang/storage"
 	"testing"
 	"time"
@@ -11,32 +10,28 @@ import (
 func TestSetAndGetToken(t *testing.T) {
 	st := createStorage(1, 1)
 	tName := fmt.Sprintf("%d", time.Now().UnixNano())
-	token := &internal.IntrospectToken{
-		Sub: tName,
-		Exp: time.Now().Add(5 * time.Second).Unix(),
-	}
-	if err := st.Set(tName, token); err != nil {
-		t.Log("Unable to add token")
+	exp := time.Now().Add(5 * time.Second).Unix()
+	token := []byte(tName)
+	if err := st.Set(tName, exp, token); err != nil {
+		t.Log("Unable to add token to the memory")
 	}
 
 	tok, err := st.Get(tName)
 	if err != nil {
-		t.Log("Unable to get token")
+		t.Log("Unable to get token from the memory")
 	}
-	if token.Sub != tok.Sub {
-		t.Errorf("Expected %s token, but %s token was received.", token.Sub, tok.Sub)
+	if string(token) != string(tok) {
+		t.Errorf("Expected %s token, but %s token was received.", string(token), string(tok))
 	}
 }
 
 func TestExpireToken(t *testing.T) {
 	st := createStorage(1, 1)
 	tName := fmt.Sprintf("%d", time.Now().UnixNano())
-	token := &internal.IntrospectToken{
-		Sub: tName,
-		Exp: time.Now().Add(time.Second).Unix() - 1,
-	}
-	if err := st.Set(tName, token); err != nil {
-		t.Log("Unable to add token")
+	exp := time.Now().Add(time.Second).Unix() - 1
+	token := []byte(tName)
+	if err := st.Set(tName, exp, token); err != nil {
+		t.Log("Unable to add token to the memory")
 	}
 
 	_, err := st.Get(tName)
@@ -67,26 +62,20 @@ func TestGetUnExistsToken(t *testing.T) {
 func TestDeleteToken(t *testing.T) {
 	st := createStorage(1, 1)
 	tName := fmt.Sprintf("%d", time.Now().UnixNano())
-	token := &internal.IntrospectToken{
-		Sub: tName,
-		Exp: time.Now().Add(5 * time.Second).Unix(),
-	}
-	if err := st.Set(tName, token); err != nil {
-		t.Log("Unable to add token")
+	exp := time.Now().Add(5 * time.Second).Unix()
+	token := []byte(tName)
+	if err := st.Set(tName, exp, token); err != nil {
+		t.Log("Unable to add token to the memory")
 	}
 	if err := st.Delete(tName); err != nil {
-		t.Log("Unable to delete token")
+		t.Log("Unable to delete token from the memory")
 	}
 
 	if _, err := st.Get(tName); err.Error() != ErrorTokenNotExists {
-		t.Error("Token has not been deleted")
+		t.Error("Token has not been deleted from the memory")
 	}
 }
 
 func createStorage(maxSize int, itemsToPrune int) storage.Adapter {
-	conf := &Config{
-		MaxSize:      int64(maxSize),
-		ItemsToPrune: uint32(itemsToPrune),
-	}
-	return NewStorage(conf)
+	return NewStorage(int64(maxSize), uint32(itemsToPrune), PromoteLimit)
 }

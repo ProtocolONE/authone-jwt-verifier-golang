@@ -7,4 +7,4 @@
 This component contains helper methods for working with authentication in ProtocolOne projects. Also, based on these 
 methods, middleware is implemented to verify authentication in the Echo framework.
 
-An example of use can be found in the demo application located in the example directory.
+An example of use can be found in the demo application located in the [example directory](/example).
