@@ -1,17 +1,10 @@
 # go-echo-middleware
 
-[![Build Status](https://travis-ci.org/ProtocolONE/go-echo-middleware.svg?branch=master)](https://travis-ci.org/ProtocolONE/go-echo-middleware) [![codecov](https://codecov.io/gh/ProtocolONE/go-echo-middleware/branch/master/graph/badge.svg)](https://codecov.io/gh/ProtocolONE/go-echo-middleware) [![Go Report Card](https://goreportcard.com/badge/github.com/ProtocolONE/go-echo-middleware)](https://goreportcard.com/report/github.com/ProtocolONE/go-echo-middleware)
-
-A repository for go-echo protocol one middleware.
+[![Build Status](https://travis-ci.org/ProtocolONE/authone-jwt-verifier-golang.svg?branch=master)](https://travis-ci.org/ProtocolONE/authone-jwt-verifier-golang) [![codecov](https://codecov.io/gh/ProtocolONE/authone-jwt-verifier-golang/branch/master/graph/badge.svg)](https://codecov.io/gh/ProtocolONE/authone-jwt-verifier-golang) [![Go Report Card](https://goreportcard.com/badge/github.com/ProtocolONE/authone-jwt-verifier-golang)](https://goreportcard.com/report/github.com/ProtocolONE/authone-jwt-verifier-golang)
 
 # Overview
- 
-A collection of plugins for use with the the Echo framework.
- 
-## Contents
- 
-Contents of this repository:
- 
-| Directory | Description                                          |
-| --------- | ---------------------------------------------------- |
-| Auth      | Login                                                |
+
+This component contains helper methods for working with authentication in ProtocolOne projects. Also, based on these 
+methods, middleware is implemented to verify authentication in the Echo framework.
+
+An example of use can be found in the demo application located in the [example directory](/example).

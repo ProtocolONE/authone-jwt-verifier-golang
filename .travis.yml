@@ -2,6 +2,8 @@ language: go
 sudo: false
 go:
 - 1.11.x
+service:
+  - redis-server
 env:
   matrix:
   - GO111MODULE=on
@@ -12,6 +14,8 @@ script:
 - go test ./... -coverprofile=coverage.out -covermode=atomic
 after_success:
 - bash <(curl -s https://codecov.io/bash)
+before_install:
+  sudo service redis-server start --bind 127.0.0.1
 notifications:
   slack:
     secure: c+Wufus/yuwKz/LO9Rw/4tR9xOFGRf6rR04E+35cbEIUBMUhV10yvSrLOTUtRL3jIDOUg0IZwy9rhaUWLmIaDQmS9/DMyREsCotbrC/RdFGG57UzzqNlZDZhWEIMCQLKu3Nb9Q5XnhuVIln47RWQVGM/B0X5cd5eVunz96trTEYC/8/MaO0pVtnG9WwNuck6GHPVfQNLvOgyUpVSYlixQmw26YU+18knnZJrx3rQNhax27rcgPdsvj1nVmr0+JnBFZPXjLn6/sj0p5uxuDrEhJ9dGAvzDhpyhxTTkOcwcGVUPDeteCRnfXrsBwAvn5+1cdYRXCLSuC9ECZOYBSMozIhdLz8PWH6+Rpw3BmWXgzuXig8LkdC58B/Iy0NBqrkecoePGvI6Wn9Vx+Exw5Tv1ECyAhVJuu73R437ZON0BHOrTUR+zvhShiiGw7do7cRdUo3rhGavL7U+uAcUg+ZU8XH6K/oAP3UtP0qeNz00ARDg8nHiG4FYMFz3k782WVKf4maz84DpA24/+qT7JMidb4qBJEVkCbOOAfd8hnWL8y2hgyyKpKDwqg/fHiGMQTAANw+RNmFGNJhwCbvvz+pdyeZqTPK+EXWwnH2hSbMbW40HxZWtXNvo1/OnpH3qSHXs7sKNawTX28EMEsh7ydYx4EMbisA1Ud8YByiAbIvwp38=
