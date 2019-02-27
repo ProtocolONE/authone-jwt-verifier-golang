@@ -13,18 +13,13 @@ import (
 )
 
 var (
-	clientID      = "5c6a75094c1efd524019c5b4"
-	clientSecret  = "GBP29UmWmYdzkYHXMaFWetJAZovy2lM0vOw6iz8BlrHarSoYNKi7Yjgf3yZC7Jsp"
-	scopes        = []string{"openid", "offline"}
-	responseType  = "code"
-	redirectURL   = "http://127.0.0.1:1323/auth/callback"
-	authURL       = "http://localhost:4444/oauth2/auth"
-	tokenURL      = "http://localhost:4444/oauth2/token"
-	userInfoURL   = "http://localhost:4444/userinfo"
-	revokeUrl     = "http://localhost:4444/oauth2/revoke"
-	jwksUrl       = "http://localhost:4444/.well-known/jwks.json"
-	introspectURL = "http://localhost:4445/oauth2/introspect"
-	jwtv          *jwtverifier.JwtVerifier
+	clientID     = "5c6a75094c1efd524019c5b4"
+	clientSecret = "GBP29UmWmYdzkYHXMaFWetJAZovy2lM0vOw6iz8BlrHarSoYNKi7Yjgf3yZC7Jsp"
+	scopes       = []string{"openid", "offline"}
+	responseType = "code"
+	redirectURL  = "http://127.0.0.1:1323/auth/callback"
+	authDomain   = "http://localhost:8080"
+	jwtv         *jwtverifier.JwtVerifier
 )
 
 func main() {
@@ -38,14 +33,7 @@ func main() {
 		ClientSecret: clientSecret,
 		Scopes:       scopes,
 		RedirectURL:  redirectURL,
-		Endpoint: jwtverifier.Endpoint{
-			AuthURL:       authURL,
-			TokenURL:      tokenURL,
-			IntrospectURL: introspectURL,
-			UserInfoURL:   userInfoURL,
-			JwksUrl:       jwksUrl,
-			RevokeUrl:     revokeUrl,
-		},
+		Issuer:       authDomain,
 	}
 	jwtv := jwtverifier.NewJwtVerifier(settings)
 

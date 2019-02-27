@@ -43,11 +43,15 @@ type Config struct {
 	// Scope specifies optional requested permissions.
 	Scopes []string
 
-	// Endpoint contains the resource server's token endpoint
+	// Issuer is the domain where ProtocolOne authorization server is located.
+	// Without a slash at the end of the line, this is important.
+	Issuer string
+
+	// endpoint contains the resource server's token endpoint
 	// URLs. These are constants specific to each server and are
 	// often available via tenant-specific setting for each
 	// AuthOne application.
-	Endpoint Endpoint
+	endpoint endpoint
 }
 
 // AuthUrlOption contains an additional option for authentication form URL.
@@ -59,51 +63,59 @@ type AuthUrlOption struct {
 	Value string
 }
 
-// Endpoint contains the OpenID Connect 1.0 provider's authorization and token
+// endpoint contains the OpenID Connect 1.0 provider's authorization and token
 // endpoint URLs.
-type Endpoint struct {
+type endpoint struct {
 	// The authorization code flow begins with the client directing the user to the /authorize endpoint.
 	// In this request, the client indicates the permissions it needs to acquire from the user.
 	// You can get the OAuth 2.0 authorization endpoint for your tenant by selecting App > Endpoints.
 	//
 	// Use the CreateAuthUrl method to generate a finished link containing predefined settings based on your configuration.
-	AuthURL string
+	authURL string
 
 	// At this endpoint, clients receive identification data and access tokens in exchange for code
 	// derived from authentication.
-	TokenURL string
+	tokenURL string
 
 	// The token introspection endpoint is generally intended for identifier-based access tokens, which represent
 	// a secure key to an authorisation stored with the Connect2id server.
-	IntrospectURL string
+	introspectURL string
 
 	// The UserInfo endpoint is an OAuth 2.0 protected resource of the Connect2id server where client applications
 	// can retrieve consented claims, or assertions, about the logged in end-user.
-	UserInfoURL string
+	userInfoURL string
 
 	// The Connect2id server publishes its public RSA keys as a JSON Web Key (JWK) set.
 	// This is done for the to enable clients and other parties to verify the authenticity of identity tokens
 	// issued by the server.
-	JwksUrl string
+	jwksUrl string
 
-	// RevokeUrl is the URL to revoke access tokens or refresh tokens
+	// revokeUrl is the URL to revoke access tokens or refresh tokens
 	// to notify the OpenID Connect Provider that an issued token is
 	// no longer needed and must be revoked. The revocation endpoint
 	// can revoke a token that was obtained through OpenID Connect or
 	// OAuth authentication.
-	RevokeUrl string
+	revokeUrl string
 }
 
 // NewJwtVerifier create new instance of verifier with given configuration.
 func NewJwtVerifier(config Config, options ...interface{}) *JwtVerifier {
+	config.endpoint = endpoint{
+		authURL:       config.Issuer + "/oauth2/auth",
+		tokenURL:      config.Issuer + "/oauth2/token",
+		userInfoURL:   config.Issuer + "/userinfo",
+		revokeUrl:     config.Issuer + "/oauth2/revoke",
+		introspectURL: config.Issuer + "/oauth2/introspect",
+		jwksUrl:       config.Issuer + "/.well-known/jwks.json",
+	}
 	conf := &oauth2.Config{
 		ClientID:     config.ClientID,
 		ClientSecret: config.ClientSecret,
 		Scopes:       config.Scopes,
 		RedirectURL:  config.RedirectURL,
 		Endpoint: oauth2.Endpoint{
-			AuthURL:  config.Endpoint.AuthURL,
-			TokenURL: config.Endpoint.TokenURL,
+			AuthURL:  config.endpoint.authURL,
+			TokenURL: config.endpoint.tokenURL,
 		},
 	}
 
@@ -134,7 +146,7 @@ func (j *JwtVerifier) SetStorage(a storage.Adapter) {
 // CreateAuthUrl create an URL to send the user to the initial authentication step.
 func (j *JwtVerifier) CreateAuthUrl(state string, options ...AuthUrlOption) string {
 	var buf bytes.Buffer
-	buf.WriteString(j.config.Endpoint.AuthURL)
+	buf.WriteString(j.config.endpoint.authURL)
 	v := url.Values{
 		"response_type": {"code"},
 		"client_id":     {j.config.ClientID},
@@ -151,7 +163,7 @@ func (j *JwtVerifier) CreateAuthUrl(state string, options ...AuthUrlOption) stri
 	for _, value := range options {
 		v.Add(value.Key, value.Value)
 	}
-	if strings.Contains(j.config.Endpoint.AuthURL, "?") {
+	if strings.Contains(j.config.endpoint.authURL, "?") {
 		buf.WriteByte('&')
 	} else {
 		buf.WriteByte('?')
@@ -193,7 +205,7 @@ func (j *JwtVerifier) Introspect(ctx context.Context, token string) (*Introspect
 		}
 	}
 
-	introspect, err := j.getIntrospect(ctx, j.config.Endpoint.IntrospectURL, token)
+	introspect, err := j.getIntrospect(ctx, j.config.endpoint.introspectURL, token)
 	if err != nil {
 		return nil, err
 	}
@@ -216,14 +228,14 @@ func (j *JwtVerifier) Introspect(ctx context.Context, token string) (*Introspect
 // GetUserInfo via UserInfo endpoint with uses AccessToken by authenticate header.
 // The claims are packaged in a JSON object where the sub member denotes the subject (end-user) identifier.
 func (j *JwtVerifier) GetUserInfo(ctx context.Context, token string) (*UserInfo, error) {
-	return j.getUserInfo(ctx, token, j.config.Endpoint.UserInfoURL)
+	return j.getUserInfo(ctx, token, j.config.endpoint.userInfoURL)
 }
 
 // ValidateIdToken used to check the ID Token and returns its claims (as custom json object) in the event of its validity.
 func (j *JwtVerifier) ValidateIdToken(ctx context.Context, token string) (*IdToken, error) {
 	// UNDONE: We must use application context
 	//token, err := j.
-	set, err := jwk.Fetch(j.config.Endpoint.JwksUrl)
+	set, err := jwk.Fetch(j.config.endpoint.jwksUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -247,7 +259,7 @@ func (j *JwtVerifier) ValidateIdToken(ctx context.Context, token string) (*IdTok
 // Revoke used to invalidate the specified token and, if applicable, other tokens based on the same
 // authorisation grant.
 func (j *JwtVerifier) Revoke(ctx context.Context, token string) error {
-	return j.revokeToken(ctx, token, j.config.Endpoint.RevokeUrl)
+	return j.revokeToken(ctx, token, j.config.endpoint.revokeUrl)
 }
 
 func (j *JwtVerifier) getIntrospect(ctx context.Context, introspectURL string, token string) (*IntrospectToken, error) {
