@@ -60,11 +60,11 @@ conf := jwtverifier.Config{
     ClientSecret: "",
     Scopes:       []string{"openid", "offline"},
     RedirectURL:  "http://127.0.0.1:1323/auth/callback",
-    AuthDomain:   "http://localhost:8080",
+    Issuer:   "http://localhost:8080",
 }
 ``` 
 
-AuthDomain is the domain where ProtocolOne authorization server is located (without a slash at the end of the line, 
+Issuer is the domain where ProtocolOne authorization server is located (without a slash at the end of the line, 
 this is important). Change the domain name and port, if necessary.
 
 Almost everything's ready.)

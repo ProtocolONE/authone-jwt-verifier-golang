@@ -33,7 +33,7 @@ func main() {
 		ClientSecret: clientSecret,
 		Scopes:       scopes,
 		RedirectURL:  redirectURL,
-		AuthDomain:   authDomain,
+		Issuer:       authDomain,
 	}
 	jwtv := jwtverifier.NewJwtVerifier(settings)
 

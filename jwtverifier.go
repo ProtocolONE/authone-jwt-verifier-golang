@@ -43,9 +43,9 @@ type Config struct {
 	// Scope specifies optional requested permissions.
 	Scopes []string
 
-	// AuthDomain is the domain where ProtocolOne authorization server is located.
+	// Issuer is the domain where ProtocolOne authorization server is located.
 	// Without a slash at the end of the line, this is important.
-	AuthDomain string
+	Issuer string
 
 	// endpoint contains the resource server's token endpoint
 	// URLs. These are constants specific to each server and are
@@ -101,12 +101,12 @@ type endpoint struct {
 // NewJwtVerifier create new instance of verifier with given configuration.
 func NewJwtVerifier(config Config, options ...interface{}) *JwtVerifier {
 	config.endpoint = endpoint{
-		authURL:       config.AuthDomain + "/oauth2/auth",
-		tokenURL:      config.AuthDomain + "/oauth2/token",
-		userInfoURL:   config.AuthDomain + "/userinfo",
-		revokeUrl:     config.AuthDomain + "/oauth2/revoke",
-		introspectURL: config.AuthDomain + "/oauth2/introspect",
-		jwksUrl:       config.AuthDomain + "/.well-known/jwks.json",
+		authURL:       config.Issuer + "/oauth2/auth",
+		tokenURL:      config.Issuer + "/oauth2/token",
+		userInfoURL:   config.Issuer + "/userinfo",
+		revokeUrl:     config.Issuer + "/oauth2/revoke",
+		introspectURL: config.Issuer + "/oauth2/introspect",
+		jwksUrl:       config.Issuer + "/.well-known/jwks.json",
 	}
 	conf := &oauth2.Config{
 		ClientID:     config.ClientID,

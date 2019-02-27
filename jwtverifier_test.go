@@ -255,6 +255,6 @@ func createJwtVerifier(url string) *JwtVerifier {
 		ClientSecret: "CLIENT_SECRET",
 		RedirectURL:  "REDIRECT_URL",
 		Scopes:       []string{"scope"},
-		AuthDomain:   url,
+		Issuer:       url,
 	})
 }
