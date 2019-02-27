@@ -19,4 +19,4 @@ The complete example of usage can be found in the demo application located in th
 
 - **Client ID** - The unique ID of application in the AuthOne Developer Console.
 - **RedirectURL** - The authorization server will redirect the user back to the application with either an authorization code or access token in the URL.
-- **Endpoint** - The set of endpoints of authorization server to manage introspection, authorization, revoke and get user info operations.
+- **Issuer** - the AuthOne authorization server to manage introspection, authorization, revoke and get user info operations.
