@@ -205,7 +205,7 @@ func (j *JwtVerifier) Introspect(ctx context.Context, token string) (*Introspect
 		}
 	}
 
-	introspect, err := j.getIntrospect(ctx, j.config.endpoint.introspectURL, token)
+	introspect, err := j.getIntrospect(ctx, j.config.endpoint.introspectURL, j.config.ClientID, j.config.ClientSecret, token)
 	if err != nil {
 		return nil, err
 	}
@@ -262,8 +262,8 @@ func (j *JwtVerifier) Revoke(ctx context.Context, token string) error {
 	return j.revokeToken(ctx, token, j.config.endpoint.revokeUrl)
 }
 
-func (j *JwtVerifier) getIntrospect(ctx context.Context, introspectURL string, token string) (*IntrospectToken, error) {
-	form := url.Values{"token": {token}}
+func (j *JwtVerifier) getIntrospect(ctx context.Context, introspectURL string, clientId string, clientSecret string, token string) (*IntrospectToken, error) {
+	form := url.Values{"client_id": {clientId}, "secret": {clientSecret}, "token": {token}}
 	req, err := http.NewRequest("POST", introspectURL, strings.NewReader(form.Encode()))
 	if err != nil {
 		return nil, err
