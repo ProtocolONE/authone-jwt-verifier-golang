@@ -55,20 +55,17 @@ Use the resulting `id`, `auth_secret` and `auth_redirect_urls` to configure your
 application.
 
 ```go
-conf := &oauth2.Config{
+conf := jwtverifier.Config{
     ClientID:     "",
     ClientSecret: "",
     Scopes:       []string{"openid", "offline"},
     RedirectURL:  "http://127.0.0.1:1323/auth/callback",
-    Endpoint: oauth2.Endpoint{
-        AuthURL:  "http://localhost:4444/oauth2/auth",
-        TokenURL: "http://localhost:4444/oauth2/token",
-    },
+    AuthDomain:   "http://localhost:8080",
 }
 ``` 
 
-Endpoints for `AuthURL` and `TokenURL` specify those where Hydra is located (change the 
-domain name and port, if necessary).
+AuthDomain is the domain where ProtocolOne authorization server is located (without a slash at the end of the line, 
+this is important). Change the domain name and port, if necessary.
 
 Almost everything's ready.)
 

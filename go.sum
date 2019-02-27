@@ -6,7 +6,7 @@ github.com/go-redis/redis v6.15.1+incompatible h1:BZ9s4/vHrIqwOb0OPtTQ5uABxETJ3N
 github.com/go-redis/redis v6.15.1+incompatible/go.mod h1:NAIEuMOZ/fxfXJIrKDQDz8wamY7mA7PouImQ2Jvg6kA=
 github.com/karlseguin/ccache v2.0.2+incompatible h1:MpSlLlHgG3vPWTAIJsSYlyAQsHwfQ2HzgUlbJFh9Ufk=
 github.com/karlseguin/ccache v2.0.2+incompatible/go.mod h1:CM9tNPzT6EdRh14+jiW8mEF9mkNZuuE51qmgGYUB93w=
-github.com/labstack/echo v3.3.5+incompatible h1:9PfxPUmasKzeJor9uQTaXLT6WUG/r+vSTmvXxvv3JO4=
+github.com/labstack/echo v3.3.5+incompatible h1:Y3vG4kINVWNQN8Y6Jdur8uLat7fSLV5n5yLE8n+JbF4=
 github.com/labstack/echo v3.3.5+incompatible/go.mod h1:0INS7j/VjnFxD4E2wkz67b8cVwCLbBmJyDaka6Cmk1s=
 github.com/labstack/gommon v0.2.8 h1:JvRqmeZcfrHC5u6uVleB4NxxNbzx6gpbJiQknDbKQu0=
 github.com/labstack/gommon v0.2.8/go.mod h1:/tj9csK2iPSBvn+3NLM9e52usepMtrd5ilFYA+wQNJ4=

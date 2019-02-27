@@ -32,7 +32,7 @@ func TestSetAdapter(t *testing.T) {
 func TestCreateAuthUrl(t *testing.T) {
 	jwt := createJwtVerifier("http://localhost")
 	url := jwt.CreateAuthUrl("mystate")
-	expected := "http://localhost/auth?client_id=CLIENT_ID&redirect_uri=REDIRECT_URL&response_type=code&scope=scope&state=mystate"
+	expected := "http://localhost/oauth2/auth?client_id=CLIENT_ID&redirect_uri=REDIRECT_URL&response_type=code&scope=scope&state=mystate"
 	if expected != url {
 		t.Errorf("Invalid auth URL [%s], expected [%s]", url, expected)
 	}
@@ -42,7 +42,7 @@ func TestCreateAuthUrl_WithOptions(t *testing.T) {
 	opt := AuthUrlOption{Key: "optionkey", Value: "optionvalue"}
 	jwt := createJwtVerifier("http://localhost")
 	url := jwt.CreateAuthUrl("mystate", opt)
-	expected := "http://localhost/auth?client_id=CLIENT_ID&optionkey=optionvalue&redirect_uri=REDIRECT_URL&response_type=code&scope=scope&state=mystate"
+	expected := "http://localhost/oauth2/auth?client_id=CLIENT_ID&optionkey=optionvalue&redirect_uri=REDIRECT_URL&response_type=code&scope=scope&state=mystate"
 	if expected != url {
 		t.Errorf("Invalid auth URL [%s], expected [%s]", url, expected)
 	}
@@ -53,7 +53,7 @@ func TestCreateAuthUrl_WithManyOptions(t *testing.T) {
 	opt2 := AuthUrlOption{Key: "optionkey2", Value: "optionvalue2"}
 	jwt := createJwtVerifier("http://localhost")
 	url := jwt.CreateAuthUrl("mystate", opt1, opt2)
-	expected := "http://localhost/auth?client_id=CLIENT_ID&optionkey1=optionvalue1&optionkey2=optionvalue2&redirect_uri=REDIRECT_URL&response_type=code&scope=scope&state=mystate"
+	expected := "http://localhost/oauth2/auth?client_id=CLIENT_ID&optionkey1=optionvalue1&optionkey2=optionvalue2&redirect_uri=REDIRECT_URL&response_type=code&scope=scope&state=mystate"
 	if expected != url {
 		t.Errorf("Invalid auth URL [%s], expected [%s]", url, expected)
 	}
@@ -61,7 +61,7 @@ func TestCreateAuthUrl_WithManyOptions(t *testing.T) {
 
 func TestExchangeRequest(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.String() != "/token" {
+		if r.URL.String() != "/oauth2/token" {
 			t.Errorf("Unexpected exchange request URL %q", r.URL)
 		}
 		headerAuth := r.Header.Get("Authorization")
@@ -255,12 +255,6 @@ func createJwtVerifier(url string) *JwtVerifier {
 		ClientSecret: "CLIENT_SECRET",
 		RedirectURL:  "REDIRECT_URL",
 		Scopes:       []string{"scope"},
-		Endpoint: Endpoint{
-			AuthURL:       url + "/auth",
-			TokenURL:      url + "/token",
-			UserInfoURL:   url + "/userinfo",
-			IntrospectURL: url + "/introspect",
-			RevokeUrl:     url + "/revoke",
-		},
+		AuthDomain:   url,
 	})
 }

@@ -21,13 +21,7 @@ func TestAuthOneJwtWithConfig(t *testing.T) {
 		ClientSecret: "CLIENT_SECRET",
 		RedirectURL:  "REDIRECT_URL",
 		Scopes:       []string{"scope"},
-		Endpoint: jwtverifier.Endpoint{
-			AuthURL:       url + "/auth",
-			TokenURL:      url + "/token",
-			UserInfoURL:   url + "/userinfo",
-			IntrospectURL: url + "/introspect",
-			RevokeUrl:     url + "/revoke",
-		},
+		AuthDomain:   url,
 	}
 	handler := func(c echo.Context) error {
 		return c.String(http.StatusOK, "test")
