@@ -1,4 +1,4 @@
-# go-echo-middleware
+# AuthOne JWT verifier for Go
 
 [![Build Status](https://travis-ci.org/ProtocolONE/authone-jwt-verifier-golang.svg?branch=master)](https://travis-ci.org/ProtocolONE/authone-jwt-verifier-golang) [![codecov](https://codecov.io/gh/ProtocolONE/authone-jwt-verifier-golang/branch/master/graph/badge.svg)](https://codecov.io/gh/ProtocolONE/authone-jwt-verifier-golang) [![Go Report Card](https://goreportcard.com/badge/github.com/ProtocolONE/authone-jwt-verifier-golang)](https://goreportcard.com/report/github.com/ProtocolONE/authone-jwt-verifier-golang)
 
