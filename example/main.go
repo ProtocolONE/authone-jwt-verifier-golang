@@ -13,12 +13,12 @@ import (
 )
 
 var (
-	clientID     = "5c6a75094c1efd524019c5b4"
-	clientSecret = "GBP29UmWmYdzkYHXMaFWetJAZovy2lM0vOw6iz8BlrHarSoYNKi7Yjgf3yZC7Jsp"
+	clientID     = "5c77953f51c0950001436152"
+	clientSecret = "tGtL8HcRDY5X7VxEhyIye2EhiN9YyTJ5Ny0AndLNXQFgKCSgUKE0Ti4X9fHK6Qib"
 	scopes       = []string{"openid", "offline"}
 	responseType = "code"
 	redirectURL  = "http://127.0.0.1:1323/auth/callback"
-	authDomain   = "http://localhost:8080"
+	authDomain   = "https://auth1.tst.protocol.one"
 	jwtv         *jwtverifier.JwtVerifier
 )
 
@@ -35,7 +35,7 @@ func main() {
 		RedirectURL:  redirectURL,
 		Issuer:       authDomain,
 	}
-	jwtv := jwtverifier.NewJwtVerifier(settings)
+	jwtv = jwtverifier.NewJwtVerifier(settings)
 
 	// Routes
 	e.GET("/", index)
@@ -80,7 +80,7 @@ func authMeProcess(c echo.Context) error {
 
 func authCallback(c echo.Context) error {
 	ctx := c.Request().Context()
-	t, err := jwtv.Exchange(ctx, fmt.Sprint(c.Get("code")))
+	t, err := jwtv.Exchange(ctx, fmt.Sprint(c.QueryParam("code")))
 	if err != nil {
 		c.Echo().Logger.Error("Unable to get auth token")
 		return c.HTML(http.StatusBadRequest, "Authorization error")
