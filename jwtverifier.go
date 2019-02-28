@@ -103,7 +103,7 @@ func NewJwtVerifier(config Config, options ...interface{}) *JwtVerifier {
 	config.endpoint = endpoint{
 		authURL:       config.Issuer + "/oauth2/auth",
 		tokenURL:      config.Issuer + "/oauth2/token",
-		userInfoURL:   config.Issuer + "/userinfo",
+		userInfoURL:   config.Issuer + "/oauth2/userinfo",
 		revokeUrl:     config.Issuer + "/oauth2/revoke",
 		introspectURL: config.Issuer + "/oauth2/introspect",
 		jwksUrl:       config.Issuer + "/.well-known/jwks.json",
