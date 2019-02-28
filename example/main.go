@@ -61,10 +61,8 @@ func someRoute(c echo.Context) error {
 }
 
 func privateZone(c echo.Context) error {
-	userID := c.Get("user_id")
-	userScope := c.Get("user_scope")
-	fmt.Printf("User ID: %+v\n", userID)
-	fmt.Printf("User scope: %+v\n", userScope)
+	user := c.Get("user")
+	fmt.Printf("User: %+v\n", user.(*jwtverifier.UserInfo))
 	return c.HTML(http.StatusOK, "")
 }
 
