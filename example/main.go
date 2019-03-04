@@ -13,12 +13,12 @@ import (
 )
 
 var (
-	clientID     = "5c77953f51c0950001436152"
-	clientSecret = "tGtL8HcRDY5X7VxEhyIye2EhiN9YyTJ5Ny0AndLNXQFgKCSgUKE0Ti4X9fHK6Qib"
+	clientID     = "5c7d0bbd02429c05bc2d6ebd"
+	clientSecret = "IQzVuwxzVn1oNauD0CgeIRAD0o6ThLCiUTms9v1fLqESfBlf75mJhSjCTMRmnOy7"
 	scopes       = []string{"openid", "offline"}
 	responseType = "code"
-	redirectURL  = "http://127.0.0.1:1323/auth/callback"
-	authDomain   = "https://auth1.tst.protocol.one"
+	redirectURL  = "http://localhost:1323/auth/callback"
+	authDomain   = "http://localhost:8080"
 	jwtv         *jwtverifier.JwtVerifier
 )
 
@@ -81,9 +81,9 @@ func authCallback(c echo.Context) error {
 	t, err := jwtv.Exchange(ctx, fmt.Sprint(c.QueryParam("code")))
 	if err != nil {
 		c.Echo().Logger.Error("Unable to get auth token")
-		return c.HTML(http.StatusBadRequest, "Authorization error")
+		return c.HTML(http.StatusBadRequest, fmt.Sprintf("Authorization error: %s\n", err.Error()))
 	}
-	fmt.Printf("AccessToken: %+v\n", t.AccessToken)
+	fmt.Printf("Expiry: %s\n", t.Expiry)
 
 	if err := introspect(ctx, t); err != nil {
 		c.Echo().Logger.Error("Unable to get introspect access token")
@@ -107,12 +107,22 @@ func authCallback(c echo.Context) error {
 }
 
 func introspect(c context.Context, token *jwtverifier.Token) error {
-	t, err := jwtv.Introspect(c, token.AccessToken)
+	at, err := jwtv.Introspect(c, token.AccessToken)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("JWT token: %+v\n", t)
-	fmt.Printf("Expiry: %+v\n", token.Expiry)
+	fmt.Printf("AccessToken string: %+v\n", token.AccessToken)
+	fmt.Printf("AccessToken JWT: %+v\n", at)
+	fmt.Printf("AccessToken expiry: %+v\n", at.Exp)
+
+	rt, err := jwtv.Introspect(c, token.RefreshToken)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("RefreshToken string: %+v\n", token.RefreshToken)
+	fmt.Printf("RefreshToken JWT: %+v\n", rt)
+	fmt.Printf("RefreshToken expiry: %+v\n", rt.Exp)
+
 	return nil
 }
 
