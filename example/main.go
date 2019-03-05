@@ -9,12 +9,15 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/labstack/gommon/log"
+	"html/template"
+	"io"
 	"net/http"
+	"net/url"
 )
 
 var (
-	clientID     = "5c7d0bbd02429c05bc2d6ebd"
-	clientSecret = "IQzVuwxzVn1oNauD0CgeIRAD0o6ThLCiUTms9v1fLqESfBlf75mJhSjCTMRmnOy7"
+	clientID     = "5c7d930a02429c10c0864511"
+	clientSecret = "8XUgBzHdKXpetjb1BVzr8b1i4Ztua8pdMMHb0EgFIlluXWSuxjrwSN4RXtx5FfKg"
 	scopes       = []string{"openid", "offline"}
 	responseType = "code"
 	redirectURL  = "http://localhost:1323/auth/callback"
@@ -22,8 +25,20 @@ var (
 	jwtv         *jwtverifier.JwtVerifier
 )
 
+type Template struct {
+	templates *template.Template
+}
+
+func (t *Template) Render(w io.Writer, name string, data interface{}, ctx echo.Context) error {
+	return t.templates.ExecuteTemplate(w, name, data)
+}
+
 func main() {
+	t := &Template{
+		templates: template.Must(template.ParseGlob("templates/*.html")),
+	}
 	e := echo.New()
+	e.Renderer = t
 	e.Logger.SetLevel(log.ERROR)
 	e.Use(middleware.Logger())
 	e.Use(nocache.NoCache())
@@ -53,7 +68,12 @@ func main() {
 }
 
 func index(c echo.Context) error {
-	return c.HTML(http.StatusOK, "<a href=\"/authme\">Auth me</a>")
+	u, _ := url.Parse(c.Scheme() + "://" + c.Request().Host)
+	return c.Render(http.StatusOK, "index.html", map[string]interface{}{
+		"AuthDomain":  fmt.Sprintf("%s://%s:8080", u.Scheme, u.Hostname()),
+		"clientID":    clientID,
+		"redirectUri": fmt.Sprintf("%s://%s/auth/callback", c.Scheme(), c.Request().Host),
+	})
 }
 
 func someRoute(c echo.Context) error {
@@ -71,9 +91,8 @@ func authMeProcess(c echo.Context) error {
 		Key:   "state",
 		Value: "example_state_string",
 	}
-	url := jwtv.CreateAuthUrl(responseType, options)
-	fmt.Printf("%s\n", url)
-	return c.Redirect(http.StatusPermanentRedirect, url)
+
+	return c.Redirect(http.StatusPermanentRedirect, jwtv.CreateAuthUrl(responseType, options))
 }
 
 func authCallback(c echo.Context) error {
