@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/ProtocolONE/authone-jwt-verifier-golang"
 	"github.com/ProtocolONE/authone-jwt-verifier-golang/example/nocache"
@@ -17,11 +16,11 @@ import (
 )
 
 var (
-	clientID     = "5c7d930a02429c10c0864511"
-	clientSecret = "8XUgBzHdKXpetjb1BVzr8b1i4Ztua8pdMMHb0EgFIlluXWSuxjrwSN4RXtx5FfKg"
+	clientID     = "5c7fd8c50dd75d000162c69f"
+	clientSecret = "TVzu97mMqsn4bRQbgS07MdIuf3TMgZHEm0fjKWWP5DvzppyTtXA8sgQtqazr91zq"
 	scopes       = []string{"openid", "offline"}
 	redirectURL  = "http://127.0.0.1:1323/auth/callback"
-	authDomain   = "http://127.0.0.1:4444"
+	authDomain   = "https://dev-auth1.tst.protocol.one"
 	jwtv         *jwtverifier.JwtVerifier
 )
 
@@ -179,7 +178,7 @@ func validateIdToken(c context.Context, token *jwtverifier.Token) (*jwtverifier.
 	id := token.Extra("id_token")
 	if id == nil {
 		fmt.Print("ID token is not required\n")
-		return nil, errors.New("ID token is not required\n")
+		return nil, nil
 	}
 	t, err := jwtv.ValidateIdToken(c, fmt.Sprint(id))
 	if err != nil {
