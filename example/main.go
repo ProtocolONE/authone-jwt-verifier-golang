@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/ProtocolONE/authone-jwt-verifier-golang"
 	"github.com/ProtocolONE/authone-jwt-verifier-golang/example/nocache"
@@ -19,9 +20,8 @@ var (
 	clientID     = "5c7d930a02429c10c0864511"
 	clientSecret = "8XUgBzHdKXpetjb1BVzr8b1i4Ztua8pdMMHb0EgFIlluXWSuxjrwSN4RXtx5FfKg"
 	scopes       = []string{"openid", "offline"}
-	responseType = "code"
-	redirectURL  = "http://localhost:1323/auth/callback"
-	authDomain   = "http://localhost:8080"
+	redirectURL  = "http://127.0.0.1:1323/auth/callback"
+	authDomain   = "http://127.0.0.1:4444"
 	jwtv         *jwtverifier.JwtVerifier
 )
 
@@ -72,7 +72,7 @@ func index(c echo.Context) error {
 	return c.Render(http.StatusOK, "index.html", map[string]interface{}{
 		"AuthDomain":  fmt.Sprintf("%s://%s:8080", u.Scheme, u.Hostname()),
 		"clientID":    clientID,
-		"redirectUri": fmt.Sprintf("%s://%s/auth/callback", c.Scheme(), c.Request().Host),
+		"redirectUri": redirectURL,
 	})
 }
 
@@ -88,47 +88,68 @@ func privateZone(c echo.Context) error {
 
 func authMeProcess(c echo.Context) error {
 	options := jwtverifier.AuthUrlOption{
-		Key:   "state",
-		Value: "example_state_string",
+		Key:   "test1",
+		Value: "value1",
 	}
-
-	return c.Redirect(http.StatusPermanentRedirect, jwtv.CreateAuthUrl(responseType, options))
+	u := jwtv.CreateAuthUrl("example_state_string", options)
+	fmt.Printf("%s\n", u)
+	return c.Redirect(http.StatusPermanentRedirect, u)
 }
 
 func authCallback(c echo.Context) error {
+	payload := map[string]interface{}{"ClientID": clientID}
 	ctx := c.Request().Context()
 	t, err := jwtv.Exchange(ctx, fmt.Sprint(c.QueryParam("code")))
 	if err != nil {
 		c.Echo().Logger.Error("Unable to get auth token")
-		return c.HTML(http.StatusBadRequest, fmt.Sprintf("Authorization error: %s\n", err.Error()))
+		payload["error"] = fmt.Sprintf("Authorization error: %s\n", err.Error())
 	}
-	fmt.Printf("Expiry: %s\n", t.Expiry)
+	fmt.Printf("AccessToken string: %s\n", t.AccessToken)
+	fmt.Printf("RefreshToken string: %s\n", t.RefreshToken)
 
-	if err := introspect(ctx, t); err != nil {
+	introspectAccessToken, introspectRefreshToken, err := introspect(ctx, t)
+	if err != nil {
 		c.Echo().Logger.Error("Unable to get introspect access token")
 		fmt.Print(err)
-		return nil
+		payload["error"] = fmt.Sprintf("Unable to introspect token: %s\n", err.Error())
+	} else {
+		payload["introspectAccessToken"] = introspectAccessToken
+		payload["introspectRefreshToken"] = introspectRefreshToken
 	}
 
-	if err := userinfo(ctx, t); err != nil {
+	userInfo, err := userinfo(ctx, t)
+	if err != nil {
 		c.Echo().Logger.Error("Unable to get user info")
 		fmt.Print(err)
-		return nil
+		payload["error"] = fmt.Sprintf("Unable to get user info: %s\n", err.Error())
+	} else {
+		payload["userInfo"] = userInfo
 	}
 
-	if err := validateIdToken(ctx, t); err != nil {
+	idToken, err := validateIdToken(ctx, t)
+	if err != nil {
 		c.Echo().Logger.Error("Unable to get validate id token")
 		fmt.Print(err)
-		return nil
+		payload["error"] = fmt.Sprintf("Unable to validate id token: %s\n", err.Error())
+	} else {
+		payload["idToken"] = idToken
 	}
 
-	return nil
+	var result = "success"
+	if payload["error"] != "" {
+		result = "error"
+	}
+
+	return c.Render(http.StatusOK, "callback.html", map[string]interface{}{
+		"Result":  result,
+		"Payload": payload,
+	})
 }
 
-func introspect(c context.Context, token *jwtverifier.Token) error {
+func introspect(c context.Context, token *jwtverifier.Token) (*jwtverifier.IntrospectToken, *jwtverifier.IntrospectToken, error) {
 	at, err := jwtv.Introspect(c, token.AccessToken)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 	fmt.Printf("AccessToken string: %+v\n", token.AccessToken)
 	fmt.Printf("AccessToken JWT: %+v\n", at)
@@ -136,34 +157,34 @@ func introspect(c context.Context, token *jwtverifier.Token) error {
 
 	rt, err := jwtv.Introspect(c, token.RefreshToken)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 	fmt.Printf("RefreshToken string: %+v\n", token.RefreshToken)
 	fmt.Printf("RefreshToken JWT: %+v\n", rt)
 	fmt.Printf("RefreshToken expiry: %+v\n", rt.Exp)
 
-	return nil
+	return at, rt, nil
 }
 
-func userinfo(c context.Context, token *jwtverifier.Token) error {
+func userinfo(c context.Context, token *jwtverifier.Token) (*jwtverifier.UserInfo, error) {
 	info, err := jwtv.GetUserInfo(c, token.AccessToken)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	fmt.Printf("User info: %+v\n", info)
-	return nil
+	return info, nil
 }
 
-func validateIdToken(c context.Context, token *jwtverifier.Token) error {
+func validateIdToken(c context.Context, token *jwtverifier.Token) (*jwtverifier.IdToken, error) {
 	id := token.Extra("id_token")
 	if id == nil {
 		fmt.Print("ID token is not required\n")
-		return nil
+		return nil, errors.New("ID token is not required\n")
 	}
 	t, err := jwtv.ValidateIdToken(c, fmt.Sprint(id))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	fmt.Printf("ID token: %+v\n", t)
-	return nil
+	return t, nil
 }
