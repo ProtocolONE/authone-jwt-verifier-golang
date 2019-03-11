@@ -6,19 +6,21 @@
     <script>
         const authForm = new P1AuthWebSdk({
             apiUrl: '{{index . "AuthDomain"}}',
-            clientID: '{{index . "clientID"}}',
-            redirectUri: '{{index . "redirectUri"}}',
-            state: btoa({key: 'value'}),
+            clientID: '{{index . "ClientID"}}',
+            //redirectUri: '{{index . "RedirectUri"}}',
+            state: 'based64string',
             // language: 'en',
         });
         authForm.on('tokenReceived', (value) => {
-            console.log(11111, 'value', value)
+            console.log('Auth result:')
+            console.log(value)
+            authForm.closeModal();
         });
     </script>
 </head>
 <body>
 <p><a href="/authme">Auth me</a></p>
-<p><a href="#" onclick="authForm.renderModal();return false;">Auth me over iframe</a></p>
+<p><a href="#" onclick="authForm.renderModal();return false;">Auth me over sdk-iframe</a></p>
 <div class="container">
     <div id="app"></div>
 </div>
