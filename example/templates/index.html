@@ -2,7 +2,8 @@
 <html>
 <head>
     <title>Example application</title>
-    <script data-n-head="true" src="https://static.protocol.one/auth/sdk/dev/auth-web-sdk.js"></script>
+    <script data-n-head="true" src="https://localhost:8081/auth-web-sdk.js"></script>
+    {{/*<script data-n-head="true" src="https://static.protocol.one/auth/sdk/dev/auth-web-sdk.js"></script>*/}}
     <script>
         const authForm = new P1AuthWebSdk({
             apiUrl: '{{index . "AuthDomain"}}',

@@ -70,8 +70,8 @@ func index(c echo.Context) error {
 	u, _ := url.Parse(c.Scheme() + "://" + c.Request().Host)
 	return c.Render(http.StatusOK, "index.html", map[string]interface{}{
 		"AuthDomain":  fmt.Sprintf("%s://%s:8080", u.Scheme, u.Hostname()),
-		"clientID":    clientID,
-		"redirectUri": redirectURL,
+		"ClientID":    clientID,
+		"RedirectUri": redirectURL,
 	})
 }
 
@@ -102,36 +102,37 @@ func authCallback(c echo.Context) error {
 	if err != nil {
 		c.Echo().Logger.Error("Unable to get auth token")
 		payload["error"] = fmt.Sprintf("Authorization error: %s\n", err.Error())
-	}
-	fmt.Printf("AccessToken string: %s\n", t.AccessToken)
-	fmt.Printf("RefreshToken string: %s\n", t.RefreshToken)
-
-	introspectAccessToken, introspectRefreshToken, err := introspect(ctx, t)
-	if err != nil {
-		c.Echo().Logger.Error("Unable to get introspect access token")
-		fmt.Print(err)
-		payload["error"] = fmt.Sprintf("Unable to introspect token: %s\n", err.Error())
 	} else {
-		payload["introspectAccessToken"] = introspectAccessToken
-		payload["introspectRefreshToken"] = introspectRefreshToken
-	}
+		fmt.Printf("AccessToken string: %s\n", t.AccessToken)
+		fmt.Printf("RefreshToken string: %s\n", t.RefreshToken)
 
-	userInfo, err := userinfo(ctx, t)
-	if err != nil {
-		c.Echo().Logger.Error("Unable to get user info")
-		fmt.Print(err)
-		payload["error"] = fmt.Sprintf("Unable to get user info: %s\n", err.Error())
-	} else {
-		payload["userInfo"] = userInfo
-	}
+		introspectAccessToken, introspectRefreshToken, err := introspect(ctx, t)
+		if err != nil {
+			c.Echo().Logger.Error("Unable to get introspect access token")
+			fmt.Print(err)
+			payload["error"] = fmt.Sprintf("Unable to introspect token: %s\n", err.Error())
+		} else {
+			payload["introspectAccessToken"] = introspectAccessToken
+			payload["introspectRefreshToken"] = introspectRefreshToken
+		}
 
-	idToken, err := validateIdToken(ctx, t)
-	if err != nil {
-		c.Echo().Logger.Error("Unable to get validate id token")
-		fmt.Print(err)
-		payload["error"] = fmt.Sprintf("Unable to validate id token: %s\n", err.Error())
-	} else {
-		payload["idToken"] = idToken
+		userInfo, err := userinfo(ctx, t)
+		if err != nil {
+			c.Echo().Logger.Error("Unable to get user info")
+			fmt.Print(err)
+			payload["error"] = fmt.Sprintf("Unable to get user info: %s\n", err.Error())
+		} else {
+			payload["userInfo"] = userInfo
+		}
+
+		idToken, err := validateIdToken(ctx, t)
+		if err != nil {
+			c.Echo().Logger.Error("Unable to get validate id token")
+			fmt.Print(err)
+			payload["error"] = fmt.Sprintf("Unable to validate id token: %s\n", err.Error())
+		} else {
+			payload["idToken"] = idToken
+		}
 	}
 
 	var result = "success"
