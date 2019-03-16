@@ -46,7 +46,7 @@ func introspectToken(c echo.Context, cfg *jwtverifier.JwtVerifier) (*jwtverifier
 	auth := req.Header.Get("Authorization")
 	if auth == "" {
 		return nil, &echo.HTTPError{
-			Code:    http.StatusBadRequest,
+			Code:    http.StatusUnauthorized,
 			Message: ErrorAuthHeaderNotExists,
 		}
 	}
@@ -55,7 +55,7 @@ func introspectToken(c echo.Context, cfg *jwtverifier.JwtVerifier) (*jwtverifier
 	match := r.FindStringSubmatch(auth)
 	if len(match) < 1 {
 		return nil, &echo.HTTPError{
-			Code:    http.StatusBadRequest,
+			Code:    http.StatusUnauthorized,
 			Message: ErrorAuthHeaderInvalid,
 		}
 	}
