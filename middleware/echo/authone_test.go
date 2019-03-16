@@ -34,12 +34,12 @@ func TestAuthOneJwtWithConfig(t *testing.T) {
 		info       string
 	}{
 		{
-			expErrCode: http.StatusBadRequest,
+			expErrCode: http.StatusUnauthorized,
 			info:       ErrorAuthHeaderNotExists,
 		},
 		{
 			hdrAuth:    "Bearer" + " token",
-			expErrCode: http.StatusBadRequest,
+			expErrCode: http.StatusUnauthorized,
 			info:       ErrorAuthHeaderInvalid,
 		},
 		{
