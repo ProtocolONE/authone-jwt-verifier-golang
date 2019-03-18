@@ -8,14 +8,20 @@
             apiUrl: '{{index . "AuthDomain"}}',
             clientID: '{{index . "ClientID"}}',
             //redirectUri: '{{index . "RedirectUri"}}',
+            logoutRedirectUrl: '{{index . "LogoutRedirectUri"}}',
             state: 'based64string',
             // language: 'en',
         });
         authForm.on('tokenReceived', (value) => {
-            console.log('Auth result:')
-            console.log(value)
+            console.log(value);
             setCookie("auth1_access_token", value.access_token, value.expires_in);
             authForm.closeModal();
+            window.alert('User is authenticated with access token ' + value.access_token + ' and it was be stored in cookies');
+            window.location.reload();
+        });
+        authForm.on('isLogout', () => {
+            authForm.closeModal();
+            window.alert('User is logging out');
             window.location.reload();
         });
 
@@ -52,7 +58,7 @@
 <body>
 {{ if .IsAuthenticate }}
 <p><a href="/logout">Logout</a></p>
-{{/*<p><a href="#" onclick="authForm.renderModal();return false;">Auth me over sdk-iframe</a></p>*/}}
+<p><a href="#" onclick="authForm.renderLogoutModal();return false;">Logout me over sdk-iframe</a></p>
 {{ else }}
 <p><a href="/authme">Auth me</a></p>
 <p><a href="#" onclick="authForm.renderModal();return false;">Auth me over sdk-iframe</a></p>

@@ -16,12 +16,13 @@ import (
 )
 
 var (
-	clientID     = "5c7fd8c50dd75d000162c69f"
-	clientSecret = "TVzu97mMqsn4bRQbgS07MdIuf3TMgZHEm0fjKWWP5DvzppyTtXA8sgQtqazr91zq"
-	scopes       = []string{"openid", "offline"}
-	redirectURL  = "http://127.0.0.1:1323/auth/callback"
-	authDomain   = "https://dev-auth1.tst.protocol.one"
-	jwtv         *jwtverifier.JwtVerifier
+	clientID          = "5c7fd8c50dd75d000162c69f"
+	clientSecret      = "TVzu97mMqsn4bRQbgS07MdIuf3TMgZHEm0fjKWWP5DvzppyTtXA8sgQtqazr91zq"
+	scopes            = []string{"openid", "offline"}
+	redirectURL       = "http://127.0.0.1:1323/auth/callback"
+	logoutRedirectUri = "http://127.0.0.1:1323/logout_result"
+	authDomain        = "https://dev-auth1.tst.protocol.one"
+	jwtv              *jwtverifier.JwtVerifier
 )
 
 type payload struct {
@@ -91,6 +92,8 @@ func main() {
 	e.GET("/some-route", someRoute)
 	// Logout
 	e.GET("/logout", logout)
+	// Logout callback for clean local tokens, session and etc.
+	e.GET("/logout_result", logoutResult)
 
 	// Start server
 	e.Logger.Fatal(e.Start(":1323"))
@@ -101,10 +104,11 @@ func index(c echo.Context) error {
 	isAuthenticate := cookie.String() != ""
 
 	return c.Render(http.StatusOK, "index.html", map[string]interface{}{
-		"AuthDomain":     authDomain,
-		"ClientID":       clientID,
-		"RedirectUri":    redirectURL,
-		"IsAuthenticate": isAuthenticate,
+		"AuthDomain":        authDomain,
+		"ClientID":          clientID,
+		"RedirectUri":       redirectURL,
+		"LogoutRedirectUri": logoutRedirectUri,
+		"IsAuthenticate":    isAuthenticate,
 	})
 }
 
@@ -136,6 +140,11 @@ func logout(c echo.Context) error {
 	c.SetCookie(&http.Cookie{Name: authCookieName, Value: "", Path: "/", Expires: time.Unix(0, 0)})
 	url := fmt.Sprintf("%s://%s", c.Scheme(), c.Request().Host)
 	return c.Redirect(http.StatusPermanentRedirect, jwtv.CreateLogoutUrl(url))
+}
+
+func logoutResult(c echo.Context) error {
+	c.SetCookie(&http.Cookie{Name: authCookieName, Value: "", Path: "/", Expires: time.Unix(0, 0)})
+	return c.Render(http.StatusOK, "logout.html", map[string]interface{}{})
 }
 
 func authCallback(c echo.Context) error {
