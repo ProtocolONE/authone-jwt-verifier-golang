@@ -16,8 +16,8 @@ import (
 )
 
 var (
-	clientID     = "5c7fec38b4076d00015325a0"
-	clientSecret = "5vrramBPBhZoabs2jSYTDQWfuXxc8OoRaiGvwfAiDmiwg8PqmAH2Oer5RmOd6H9M"
+	clientID     = "5c7fd8c50dd75d000162c69f"
+	clientSecret = "TVzu97mMqsn4bRQbgS07MdIuf3TMgZHEm0fjKWWP5DvzppyTtXA8sgQtqazr91zq"
 	scopes       = []string{"openid", "offline"}
 	redirectURL  = "http://127.0.0.1:1323/auth/callback"
 	authDomain   = "https://dev-auth1.tst.protocol.one"
@@ -45,7 +45,10 @@ type Template struct {
 	templates *template.Template
 }
 
-var obj = &Object{}
+var (
+	authCookieName = "auth1_access_token"
+	obj            = &Object{}
+)
 
 func (t *Template) Render(w io.Writer, name string, data interface{}, ctx echo.Context) error {
 	return t.templates.ExecuteTemplate(w, name, data)
@@ -74,28 +77,34 @@ func main() {
 		obj.Identifier = string(ui.UserID)
 	}
 
-	// Routes
+	// Main page with login|logout actions
 	e.GET("/", index)
 	// Create state and redirect to auth endpoint
 	e.GET("/authme", authMeProcess)
 	// Validate auth code result
 	e.GET("/auth/callback", authCallback)
-	// Validate auth header
+	// Check access to page by authentication header
 	e.GET("/private", privateZone, jwt_middleware.AuthOneJwtWithConfig(jwtv))
-	// Validate auth header
+	// Check access to page by authentication header with custom callable function
 	e.GET("/private_callable", privateZoneCallable, jwt_middleware.AuthOneJwtCallableWithConfig(jwtv, f))
-	// Routes
+	// Page without authentication header validation
 	e.GET("/some-route", someRoute)
+	// Logout
+	e.GET("/logout", logout)
 
 	// Start server
 	e.Logger.Fatal(e.Start(":1323"))
 }
 
 func index(c echo.Context) error {
+	cookie, _ := c.Request().Cookie(authCookieName)
+	isAuthenticate := cookie.String() != ""
+
 	return c.Render(http.StatusOK, "index.html", map[string]interface{}{
-		"AuthDomain":  authDomain,
-		"ClientID":    clientID,
-		"RedirectUri": redirectURL,
+		"AuthDomain":     authDomain,
+		"ClientID":       clientID,
+		"RedirectUri":    redirectURL,
+		"IsAuthenticate": isAuthenticate,
 	})
 }
 
@@ -120,8 +129,13 @@ func authMeProcess(c echo.Context) error {
 		Value: "value1",
 	}
 	u := jwtv.CreateAuthUrl("example_state_string", options)
-	fmt.Printf("%s\n", u)
 	return c.Redirect(http.StatusPermanentRedirect, u)
+}
+
+func logout(c echo.Context) error {
+	c.SetCookie(&http.Cookie{Name: authCookieName, Value: "", Path: "/", Expires: time.Unix(0, 0)})
+	url := fmt.Sprintf("%s://%s", c.Scheme(), c.Request().Host)
+	return c.Redirect(http.StatusPermanentRedirect, jwtv.CreateLogoutUrl(url))
 }
 
 func authCallback(c echo.Context) error {
@@ -132,11 +146,14 @@ func authCallback(c echo.Context) error {
 		c.Echo().Logger.Error("Unable to get auth token")
 		payload.Error = fmt.Sprintf("Authorization error: %s\n", err.Error())
 	} else {
+		c.SetCookie(&http.Cookie{Name: authCookieName, Value: t.AccessToken, Path: "/", Expires: t.Expiry})
+
 		payload.AccessToken = t.AccessToken
 		payload.RefreshToken = t.RefreshToken
 		payload.Expire = t.Expiry
 		fmt.Printf("AccessToken string: %s\n", t.AccessToken)
 		fmt.Printf("RefreshToken string: %s\n", t.RefreshToken)
+		fmt.Printf("Token expire: %s", t.Expiry)
 
 		introspectAccessToken, introspectRefreshToken, err := introspect(ctx, t)
 		if err != nil {
@@ -185,7 +202,6 @@ func introspect(c context.Context, token *jwtverifier.Token) (*jwtverifier.Intro
 	if err != nil {
 		return nil, nil, err
 	}
-	fmt.Printf("AccessToken string: %+v\n", token.AccessToken)
 	fmt.Printf("AccessToken JWT: %+v\n", at)
 	fmt.Printf("AccessToken expiry: %+v\n", at.Exp)
 
@@ -193,7 +209,6 @@ func introspect(c context.Context, token *jwtverifier.Token) (*jwtverifier.Intro
 	if err != nil {
 		return nil, nil, err
 	}
-	fmt.Printf("RefreshToken string: %+v\n", token.RefreshToken)
 	fmt.Printf("RefreshToken JWT: %+v\n", rt)
 	fmt.Printf("RefreshToken expiry: %+v\n", rt.Exp)
 

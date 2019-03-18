@@ -249,6 +249,15 @@ func TestIntrospect_AnotherClient(t *testing.T) {
 	}
 }
 
+func TestCreateLogoutUrl(t *testing.T) {
+	jwt := createJwtVerifier("http://localhost")
+	url := jwt.CreateLogoutUrl("http://mysite.com/")
+	expected := "http://localhost/oauth2/logout?redirect_uri=http://mysite.com/"
+	if expected != url {
+		t.Errorf("Invalid logout URL [%s], expected [%s]", url, expected)
+	}
+}
+
 func createJwtVerifier(url string) *JwtVerifier {
 	return NewJwtVerifier(Config{
 		ClientID:     "CLIENT_ID",
