@@ -19,7 +19,7 @@
             window.alert('User is authenticated with access token ' + value.access_token + ' and it was be stored in cookies');
             window.location.reload();
         });
-        authForm.on('isLogout', () => {
+        authForm.on('logoutProcessed', () => {
             authForm.closeModal();
             window.alert('User is logging out');
             window.location.reload();
