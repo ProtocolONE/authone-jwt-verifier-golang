@@ -16,12 +16,14 @@ import (
 )
 
 var (
-	clientID          = "5c7fd8c50dd75d000162c69f"
-	clientSecret      = "TVzu97mMqsn4bRQbgS07MdIuf3TMgZHEm0fjKWWP5DvzppyTtXA8sgQtqazr91zq"
+	//clientID          = "5c7fd8c50dd75d000162c69f"
+	clientID = "5c935c8e02429c5c98920f2c"
+	//clientSecret      = "TVzu97mMqsn4bRQbgS07MdIuf3TMgZHEm0fjKWWP5DvzppyTtXA8sgQtqazr91zq"
+	clientSecret      = "BxupC6l655Y3gnFQxfxME4IvLvDpKYwbfRp9ri07zxnPzFaLraCgvLkrzh0618Rt"
 	scopes            = []string{"openid", "offline"}
-	redirectURL       = "http://127.0.0.1:1323/auth/callback"
+	redirectURL       = "http://localhost:1323/auth/callback"
 	logoutRedirectUri = "http://127.0.0.1:1323/logout_result"
-	authDomain        = "https://dev-auth1.tst.protocol.one"
+	authDomain        = "http://127.0.0.1:8080"
 	jwtv              *jwtverifier.JwtVerifier
 )
 
