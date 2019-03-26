@@ -80,7 +80,13 @@ type IdToken struct {
 // See more at:
 // - https://www.iana.org/assignments/jwt/jwt.xhtml
 type UserInfo struct {
-	UserID string `json:"sub"`
+	UserID        string `json:"sub"`
+	Email         string `json:"email"`
+	EmailVerified string `json:"email_verified"`
+	PhoneNumber   string `json:"phone_number"`
+	PhoneVerified string `json:"phone_number_verified"`
+	Name          string `json:"name"`
+	Picture       string `json:"picture"`
 }
 
 // Token defined structure of oauth2.Token
