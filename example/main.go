@@ -105,6 +105,16 @@ func index(c echo.Context) error {
 	cookie, _ := c.Request().Cookie(authCookieName)
 	isAuthenticate := cookie.String() != ""
 
+	if isAuthenticate == true {
+		userInfo, err := userinfo(c.Request().Context(), cookie.Value)
+		if err != nil {
+			c.Echo().Logger.Error("Unable to get user info")
+			fmt.Print(err)
+		} else {
+			fmt.Print(userInfo)
+		}
+	}
+
 	return c.Render(http.StatusOK, "index.html", map[string]interface{}{
 		"AuthDomain":        authDomain,
 		"ClientID":          clientID,
@@ -176,7 +186,7 @@ func authCallback(c echo.Context) error {
 			payload.IntrospectRefreshToken = *introspectRefreshToken
 		}
 
-		userInfo, err := userinfo(ctx, t)
+		userInfo, err := userinfo(ctx, t.AccessToken)
 		if err != nil {
 			c.Echo().Logger.Error("Unable to get user info")
 			fmt.Print(err)
@@ -226,8 +236,8 @@ func introspect(c context.Context, token *jwtverifier.Token) (*jwtverifier.Intro
 	return at, rt, nil
 }
 
-func userinfo(c context.Context, token *jwtverifier.Token) (*jwtverifier.UserInfo, error) {
-	info, err := jwtv.GetUserInfo(c, token.AccessToken)
+func userinfo(c context.Context, token string) (*jwtverifier.UserInfo, error) {
+	info, err := jwtv.GetUserInfo(c, token)
 	if err != nil {
 		return nil, err
 	}
@@ -241,6 +251,7 @@ func validateIdToken(c context.Context, token *jwtverifier.Token) (*jwtverifier.
 		fmt.Print("ID token is not required\n")
 		return nil, nil
 	}
+	fmt.Printf("ID token string: %+v\n", id)
 	t, err := jwtv.ValidateIdToken(c, fmt.Sprint(id))
 	if err != nil {
 		return nil, err
