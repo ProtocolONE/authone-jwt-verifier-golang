@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+    <title>Example application</title>
+    <script data-n-head="true" src="https://static.protocol.one/auth/sdk/dev/auth-web-sdk.js"></script>
+    <script>
+        const authForm = new P1AuthWebSdk({
+            apiUrl: '{{index . "AuthDomain"}}',
+            clientID: '{{index . "ClientID"}}',
+            //redirectUri: '{{index . "RedirectUri"}}',
+            logoutRedirectUrl: '{{index . "LogoutRedirectUri"}}',
+            state: 'based64string',
+            // language: 'en',
+        });
+        authForm.on('tokenReceived', (value) => {
+            console.log(value);
+            setCookie("auth1_access_token", value.access_token, value.expires_in);
+            authForm.closeModal();
+            window.alert('User is authenticated with access token ' + value.access_token + ' and it was be stored in cookies');
+            window.location.reload();
+        });
+        authForm.on('logoutProcessed', () => {
+            authForm.closeModal();
+            window.alert('User is logging out');
+            window.location.reload();
+        });
+
+        function setCookie(name, value, options) {
+            options = options || {};
+
+            let expires = options.expires;
+
+            if (typeof expires == "number" && expires) {
+                let d = new Date();
+                d.setTime(d.getTime() + expires * 1000);
+                expires = options.expires = d;
+            }
+            if (expires && expires.toUTCString) {
+                options.expires = expires.toUTCString();
+            }
+
+            value = encodeURIComponent(value);
+
+            let updatedCookie = name + "=" + value;
+
+            for (let propName in options) {
+                updatedCookie += "; " + propName;
+                let propValue = options[propName];
+                if (propValue !== true) {
+                    updatedCookie += "=" + propValue;
+                }
+            }
+
+            document.cookie = updatedCookie;
+        }
+    </script>
+</head>
+<body>
+{{ if .IsAuthenticate }}
+<p><a href="/logout">Logout</a></p>
+<p><a href="#" onclick="authForm.renderLogoutModal();return false;">Logout me over sdk-iframe</a></p>
+{{ else }}
+<p><a href="/authme">Auth me</a></p>
+<p><a href="#" onclick="authForm.renderModal();return false;">Auth me over sdk-iframe</a></p>
+{{ end }}
+<p><a href="#" onclick="authForm.renderModal('change_password');return false;">Change password</a></p>
+<div class="container">
+    <div id="app"></div>
+</div>
+</body>
+</html>

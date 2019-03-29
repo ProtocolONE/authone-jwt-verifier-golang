@@ -3,7 +3,7 @@ package middleware
 import (
 	"github.com/ProtocolONE/authone-jwt-verifier-golang"
 	_ "github.com/dgrijalva/jwt-go"
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	_ "github.com/lestrrat-go/jwx/jwt"
 	"github.com/stretchr/testify/assert"
 	_ "github.com/stretchr/testify/assert"
@@ -34,12 +34,12 @@ func TestAuthOneJwtWithConfig(t *testing.T) {
 		info       string
 	}{
 		{
-			expErrCode: http.StatusBadRequest,
+			expErrCode: http.StatusUnauthorized,
 			info:       ErrorAuthHeaderNotExists,
 		},
 		{
 			hdrAuth:    "Bearer" + " token",
-			expErrCode: http.StatusBadRequest,
+			expErrCode: http.StatusUnauthorized,
 			info:       ErrorAuthHeaderInvalid,
 		},
 		{

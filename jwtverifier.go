@@ -96,6 +96,9 @@ type endpoint struct {
 	// can revoke a token that was obtained through OpenID Connect or
 	// OAuth authentication.
 	revokeUrl string
+
+	// logoutUrl is the URL to log out user with deletion session and cookie on OAuth authentication server.
+	logoutUrl string
 }
 
 // NewJwtVerifier create new instance of verifier with given configuration.
@@ -106,6 +109,7 @@ func NewJwtVerifier(config Config, options ...interface{}) *JwtVerifier {
 		userInfoURL:   config.Issuer + "/oauth2/userinfo",
 		revokeUrl:     config.Issuer + "/oauth2/revoke",
 		introspectURL: config.Issuer + "/oauth2/introspect",
+		logoutUrl:     config.Issuer + "/oauth2/logout",
 		jwksUrl:       config.Issuer + "/.well-known/jwks.json",
 	}
 	conf := &oauth2.Config{
@@ -260,6 +264,11 @@ func (j *JwtVerifier) ValidateIdToken(ctx context.Context, token string) (*IdTok
 // authorisation grant.
 func (j *JwtVerifier) Revoke(ctx context.Context, token string) error {
 	return j.revokeToken(ctx, token, j.config.endpoint.revokeUrl)
+}
+
+// CreateLogoutUrl create an URL to send the user to the logging out step with return back to the url.
+func (j *JwtVerifier) CreateLogoutUrl(url string) string {
+	return fmt.Sprintf("%s?redirect_uri=%s", j.config.endpoint.logoutUrl, url)
 }
 
 func (j *JwtVerifier) getIntrospect(ctx context.Context, introspectURL string, clientId string, clientSecret string, token string) (*IntrospectToken, error) {

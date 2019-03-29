@@ -5,8 +5,8 @@ package nocache
 import (
 	"time"
 
-	"github.com/labstack/echo"
-	emw "github.com/labstack/echo/middleware"
+	"github.com/labstack/echo/v4"
+	emw "github.com/labstack/echo/v4/middleware"
 )
 
 type (

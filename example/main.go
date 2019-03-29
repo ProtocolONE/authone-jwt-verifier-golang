@@ -6,24 +6,63 @@ import (
 	"github.com/ProtocolONE/authone-jwt-verifier-golang"
 	"github.com/ProtocolONE/authone-jwt-verifier-golang/example/nocache"
 	jwt_middleware "github.com/ProtocolONE/authone-jwt-verifier-golang/middleware/echo"
-	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
+	"html/template"
+	"io"
 	"net/http"
+	"time"
 )
 
 var (
-	clientID     = "5c77953f51c0950001436152"
-	clientSecret = "tGtL8HcRDY5X7VxEhyIye2EhiN9YyTJ5Ny0AndLNXQFgKCSgUKE0Ti4X9fHK6Qib"
-	scopes       = []string{"openid", "offline"}
-	responseType = "code"
-	redirectURL  = "http://127.0.0.1:1323/auth/callback"
-	authDomain   = "https://auth1.tst.protocol.one"
-	jwtv         *jwtverifier.JwtVerifier
+	//clientID          = "5c7fd8c50dd75d000162c69f"
+	clientID = "5c935c8e02429c5c98920f2c"
+	//clientSecret      = "TVzu97mMqsn4bRQbgS07MdIuf3TMgZHEm0fjKWWP5DvzppyTtXA8sgQtqazr91zq"
+	clientSecret      = "BxupC6l655Y3gnFQxfxME4IvLvDpKYwbfRp9ri07zxnPzFaLraCgvLkrzh0618Rt"
+	scopes            = []string{"openid", "offline"}
+	redirectURL       = "http://localhost:1323/auth/callback"
+	logoutRedirectUri = "http://127.0.0.1:1323/logout_result"
+	authDomain        = "http://127.0.0.1:8080"
+	jwtv              *jwtverifier.JwtVerifier
 )
 
+type payload struct {
+	ClientID               string                      `json:"client_id"`
+	Result                 bool                        `json:"result"`
+	Error                  string                      `json:"error"`
+	AccessToken            string                      `json:"access_token"`
+	RefreshToken           string                      `json:"refresh_token"`
+	Expire                 time.Time                   `json:"expire"`
+	IntrospectAccessToken  jwtverifier.IntrospectToken `json:"introspect_access_token"`
+	IntrospectRefreshToken jwtverifier.IntrospectToken `json:"introspect_refresh_token"`
+	UserInfo               jwtverifier.UserInfo        `json:"user_info"`
+	IdToken                jwtverifier.IdToken         `json:"id_token"`
+}
+
+type Object struct {
+	Identifier string
+}
+
+type Template struct {
+	templates *template.Template
+}
+
+var (
+	authCookieName = "auth1_access_token"
+	obj            = &Object{}
+)
+
+func (t *Template) Render(w io.Writer, name string, data interface{}, ctx echo.Context) error {
+	return t.templates.ExecuteTemplate(w, name, data)
+}
+
 func main() {
+	t := &Template{
+		templates: template.Must(template.ParseGlob("templates/*.html")),
+	}
 	e := echo.New()
+	e.Renderer = t
 	e.Logger.SetLevel(log.ERROR)
 	e.Use(middleware.Logger())
 	e.Use(nocache.NoCache())
@@ -37,23 +76,52 @@ func main() {
 	}
 	jwtv = jwtverifier.NewJwtVerifier(settings)
 
-	// Routes
+	f := func(ui *jwtverifier.UserInfo) {
+		obj.Identifier = string(ui.UserID)
+	}
+
+	// Main page with login|logout actions
 	e.GET("/", index)
 	// Create state and redirect to auth endpoint
 	e.GET("/authme", authMeProcess)
 	// Validate auth code result
 	e.GET("/auth/callback", authCallback)
-	// Validate auth header
+	// Check access to page by authentication header
 	e.GET("/private", privateZone, jwt_middleware.AuthOneJwtWithConfig(jwtv))
-	// Routes
+	// Check access to page by authentication header with custom callable function
+	e.GET("/private_callable", privateZoneCallable, jwt_middleware.AuthOneJwtCallableWithConfig(jwtv, f))
+	// Page without authentication header validation
 	e.GET("/some-route", someRoute)
+	// Logout
+	e.GET("/logout", logout)
+	// Logout callback for clean local tokens, session and etc.
+	e.GET("/logout_result", logoutResult)
 
 	// Start server
 	e.Logger.Fatal(e.Start(":1323"))
 }
 
 func index(c echo.Context) error {
-	return c.HTML(http.StatusOK, "<a href=\"/authme\">Auth me</a>")
+	cookie, _ := c.Request().Cookie(authCookieName)
+	isAuthenticate := cookie.String() != ""
+
+	if isAuthenticate == true {
+		userInfo, err := userinfo(c.Request().Context(), cookie.Value)
+		if err != nil {
+			c.Echo().Logger.Error("Unable to get user info")
+			fmt.Print(err)
+		} else {
+			fmt.Print(userInfo)
+		}
+	}
+
+	return c.Render(http.StatusOK, "index.html", map[string]interface{}{
+		"AuthDomain":        authDomain,
+		"ClientID":          clientID,
+		"RedirectUri":       redirectURL,
+		"LogoutRedirectUri": logoutRedirectUri,
+		"IsAuthenticate":    isAuthenticate,
+	})
 }
 
 func someRoute(c echo.Context) error {
@@ -66,75 +134,128 @@ func privateZone(c echo.Context) error {
 	return c.HTML(http.StatusOK, "")
 }
 
+func privateZoneCallable(c echo.Context) error {
+	fmt.Printf("User: %+v\n", obj.Identifier)
+	return c.HTML(http.StatusOK, "")
+}
+
 func authMeProcess(c echo.Context) error {
 	options := jwtverifier.AuthUrlOption{
-		Key:   "state",
-		Value: "example_state_string",
+		Key:   "test1",
+		Value: "value1",
 	}
-	url := jwtv.CreateAuthUrl(responseType, options)
-	fmt.Printf("%s\n", url)
-	return c.Redirect(http.StatusPermanentRedirect, url)
+	u := jwtv.CreateAuthUrl("example_state_string", options)
+	return c.Redirect(http.StatusPermanentRedirect, u)
+}
+
+func logout(c echo.Context) error {
+	c.SetCookie(&http.Cookie{Name: authCookieName, Value: "", Path: "/", Expires: time.Unix(0, 0)})
+	url := fmt.Sprintf("%s://%s", c.Scheme(), c.Request().Host)
+	return c.Redirect(http.StatusPermanentRedirect, jwtv.CreateLogoutUrl(url))
+}
+
+func logoutResult(c echo.Context) error {
+	c.SetCookie(&http.Cookie{Name: authCookieName, Value: "", Path: "/", Expires: time.Unix(0, 0)})
+	return c.Render(http.StatusOK, "logout.html", map[string]interface{}{})
 }
 
 func authCallback(c echo.Context) error {
+	payload := &payload{ClientID: clientID, Result: true}
 	ctx := c.Request().Context()
 	t, err := jwtv.Exchange(ctx, fmt.Sprint(c.QueryParam("code")))
 	if err != nil {
 		c.Echo().Logger.Error("Unable to get auth token")
-		return c.HTML(http.StatusBadRequest, "Authorization error")
-	}
-	fmt.Printf("AccessToken: %+v\n", t.AccessToken)
+		payload.Error = fmt.Sprintf("Authorization error: %s\n", err.Error())
+	} else {
+		c.SetCookie(&http.Cookie{Name: authCookieName, Value: t.AccessToken, Path: "/", Expires: t.Expiry})
 
-	if err := introspect(ctx, t); err != nil {
-		c.Echo().Logger.Error("Unable to get introspect access token")
-		fmt.Print(err)
-		return nil
+		payload.AccessToken = t.AccessToken
+		payload.RefreshToken = t.RefreshToken
+		payload.Expire = t.Expiry
+		fmt.Printf("AccessToken string: %s\n", t.AccessToken)
+		fmt.Printf("RefreshToken string: %s\n", t.RefreshToken)
+		fmt.Printf("Token expire: %s", t.Expiry)
+
+		introspectAccessToken, introspectRefreshToken, err := introspect(ctx, t)
+		if err != nil {
+			c.Echo().Logger.Error("Unable to get introspect access token")
+			fmt.Print(err)
+			payload.Error = fmt.Sprintf("Unable to introspect token: %s\n", err.Error())
+		} else {
+			payload.IntrospectAccessToken = *introspectAccessToken
+			payload.IntrospectRefreshToken = *introspectRefreshToken
+		}
+
+		userInfo, err := userinfo(ctx, t.AccessToken)
+		if err != nil {
+			c.Echo().Logger.Error("Unable to get user info")
+			fmt.Print(err)
+			payload.Error = fmt.Sprintf("Unable to get user info: %s\n", err.Error())
+		} else {
+			payload.UserInfo = *userInfo
+		}
+
+		idToken, err := validateIdToken(ctx, t)
+		if err != nil {
+			c.Echo().Logger.Error("Unable to get validate id token")
+			fmt.Print(err)
+			payload.Error = fmt.Sprintf("Unable to validate id token: %s\n", err.Error())
+		} else {
+			payload.IdToken = *idToken
+		}
 	}
 
-	if err := userinfo(ctx, t); err != nil {
-		c.Echo().Logger.Error("Unable to get user info")
-		fmt.Print(err)
-		return nil
+	if payload.Error != "" {
+		payload.Result = false
 	}
 
-	if err := validateIdToken(ctx, t); err != nil {
-		c.Echo().Logger.Error("Unable to get validate id token")
-		fmt.Print(err)
-		return nil
-	}
-
-	return nil
+	return c.Render(http.StatusOK, "callback.html", map[string]interface{}{
+		"Result":       payload.Result,
+		"Error":        payload.Error,
+		"AccessToken":  payload.AccessToken,
+		"RefreshToken": payload.RefreshToken,
+		"Expire":       payload.Expire,
+	})
 }
 
-func introspect(c context.Context, token *jwtverifier.Token) error {
-	t, err := jwtv.Introspect(c, token.AccessToken)
+func introspect(c context.Context, token *jwtverifier.Token) (*jwtverifier.IntrospectToken, *jwtverifier.IntrospectToken, error) {
+	at, err := jwtv.Introspect(c, token.AccessToken)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
-	fmt.Printf("JWT token: %+v\n", t)
-	fmt.Printf("Expiry: %+v\n", token.Expiry)
-	return nil
+	fmt.Printf("AccessToken JWT: %+v\n", at)
+	fmt.Printf("AccessToken expiry: %+v\n", at.Exp)
+
+	rt, err := jwtv.Introspect(c, token.RefreshToken)
+	if err != nil {
+		return nil, nil, err
+	}
+	fmt.Printf("RefreshToken JWT: %+v\n", rt)
+	fmt.Printf("RefreshToken expiry: %+v\n", rt.Exp)
+
+	return at, rt, nil
 }
 
-func userinfo(c context.Context, token *jwtverifier.Token) error {
-	info, err := jwtv.GetUserInfo(c, token.AccessToken)
+func userinfo(c context.Context, token string) (*jwtverifier.UserInfo, error) {
+	info, err := jwtv.GetUserInfo(c, token)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	fmt.Printf("User info: %+v\n", info)
-	return nil
+	return info, nil
 }
 
-func validateIdToken(c context.Context, token *jwtverifier.Token) error {
+func validateIdToken(c context.Context, token *jwtverifier.Token) (*jwtverifier.IdToken, error) {
 	id := token.Extra("id_token")
 	if id == nil {
 		fmt.Print("ID token is not required\n")
-		return nil
+		return nil, nil
 	}
+	fmt.Printf("ID token string: %+v\n", id)
 	t, err := jwtv.ValidateIdToken(c, fmt.Sprint(id))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	fmt.Printf("ID token: %+v\n", t)
-	return nil
+	return t, nil
 }
