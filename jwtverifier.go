@@ -131,7 +131,7 @@ func NewJwtVerifier(config Config, options ...interface{}) *JwtVerifier {
 	}
 
 	if j.storage == nil {
-		j.storage = memory.NewStorage(memory.MaxSize, memory.PruneLimit, memory.PromoteLimit)
+		j.storage = memory.NewStorage(memory.MaxSize)
 	}
 
 	return j

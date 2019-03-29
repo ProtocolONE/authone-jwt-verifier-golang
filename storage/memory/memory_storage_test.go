@@ -8,7 +8,7 @@ import (
 )
 
 func TestSetAndGetToken(t *testing.T) {
-	st := createStorage(1, 1)
+	st := createStorage(1)
 	tName := fmt.Sprintf("%d", time.Now().UnixNano())
 	exp := time.Now().Add(5 * time.Second).Unix()
 	token := []byte(tName)
@@ -26,7 +26,7 @@ func TestSetAndGetToken(t *testing.T) {
 }
 
 func TestExpireToken(t *testing.T) {
-	st := createStorage(1, 1)
+	st := createStorage(1)
 	tName := fmt.Sprintf("%d", time.Now().UnixNano())
 	exp := time.Now().Add(time.Second).Unix() - 1
 	token := []byte(tName)
@@ -46,7 +46,7 @@ func TestExpireToken(t *testing.T) {
 }
 
 func TestGetUnExistsToken(t *testing.T) {
-	st := createStorage(1, 1)
+	st := createStorage(1)
 	tName := "unexiststoken"
 	_, err := st.Get(tName)
 	if err == nil {
@@ -60,7 +60,7 @@ func TestGetUnExistsToken(t *testing.T) {
 }
 
 func TestDeleteToken(t *testing.T) {
-	st := createStorage(1, 1)
+	st := createStorage(1)
 	tName := fmt.Sprintf("%d", time.Now().UnixNano())
 	exp := time.Now().Add(5 * time.Second).Unix()
 	token := []byte(tName)
@@ -76,6 +76,6 @@ func TestDeleteToken(t *testing.T) {
 	}
 }
 
-func createStorage(maxSize int, itemsToPrune int) storage.Adapter {
-	return NewStorage(int64(maxSize), uint32(itemsToPrune), PromoteLimit)
+func createStorage(maxSize int) storage.Adapter {
+	return NewStorage(maxSize)
 }

@@ -2,58 +2,59 @@ package memory
 
 import (
 	"errors"
-	"fmt"
 	"github.com/ProtocolONE/authone-jwt-verifier-golang/storage"
-	"github.com/karlseguin/ccache"
+	lru "github.com/hashicorp/golang-lru"
 	"time"
 )
 
 const (
+	ErrorTokenAdd       = "unbale to add token"
 	ErrorTokenNotExists = "token not exists"
 	ErrorTokenIsExpired = "token is expired"
 	MaxSize             = 5000
-	PruneLimit          = 500
-	PromoteLimit        = 3
 )
 
-type tokenStorageMemory struct {
-	cache *ccache.Cache
+type entry struct {
+	value    []byte
+	duration time.Duration
 }
 
-func NewStorage(maxSize int64, pruneLimit uint32, promoteLimit int32) storage.Adapter {
-	conf := ccache.Configure()
-	conf.MaxSize(maxSize)
-	conf.ItemsToPrune(pruneLimit)
-	conf.GetsPerPromote(promoteLimit)
+type tokenStorageMemory struct {
+	cache *lru.Cache
+}
 
+func NewStorage(maxSize int) storage.Adapter {
+	l, _ := lru.New(maxSize)
 	return tokenStorageMemory{
-		cache: ccache.New(conf),
+		cache: l,
 	}
 }
 
 func (tsm tokenStorageMemory) Set(token string, expire int64, introspect []byte) error {
-	duration := time.Unix(expire, 0).Sub(time.Now())
-	tsm.cache.Set(token, introspect, duration)
+	e := &entry{
+		value:    introspect,
+		duration: time.Unix(expire, 0).Sub(time.Now()),
+	}
+	if false == tsm.cache.Add(token, e) {
+		return errors.New(ErrorTokenAdd)
+	}
 	return nil
 }
 
 func (tsm tokenStorageMemory) Get(token string) ([]byte, error) {
-	item := tsm.cache.Get(token)
-	if item == nil {
-		return nil, errors.New(ErrorTokenNotExists)
+	if e, ok := tsm.cache.Get(token); ok {
+		entry := e.(*entry)
+		exp := time.Now().Add(entry.duration)
+		if exp.Before(time.Now()) {
+			_ = tsm.Delete(token)
+			return nil, errors.New(ErrorTokenIsExpired)
+		}
+		return entry.value, nil
 	}
-	if item.Expired() {
-		_ = tsm.Delete(token)
-		return nil, errors.New(ErrorTokenIsExpired)
-	}
-	v := fmt.Sprintf("%s", item.Value())
-	return []byte(v), nil
+	return nil, errors.New(ErrorTokenNotExists)
 }
 
 func (tsm tokenStorageMemory) Delete(token string) error {
-	if tsm.cache.Delete(token) == false {
-		return fmt.Errorf("unable to delete token [%s] from cache", token)
-	}
-
+	tsm.cache.Remove(token)
 	return nil
 }

@@ -3,7 +3,7 @@ module github.com/ProtocolONE/authone-jwt-verifier-golang
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-redis/redis v6.15.1+incompatible
-	github.com/karlseguin/ccache v2.0.2+incompatible
+	github.com/hashicorp/golang-lru v0.5.1
 	github.com/labstack/echo v3.3.5+incompatible
 	github.com/labstack/gommon v0.2.8
 	github.com/lestrrat-go/jwx v0.0.0-20180928232350-0d477e6a1f0e
