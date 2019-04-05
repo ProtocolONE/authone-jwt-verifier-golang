@@ -4,7 +4,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-redis/redis v6.15.1+incompatible
 	github.com/hashicorp/golang-lru v0.5.1
-	github.com/labstack/echo/v4 v4.0.0 // indirect
+	github.com/labstack/echo/v4 v4.0.0
 	github.com/labstack/gommon v0.2.8
 	github.com/lestrrat-go/jwx v0.0.0-20180928232350-0d477e6a1f0e
 	github.com/lestrrat-go/pdebug v0.0.0-20180220043849-39f9a71bcabe // indirect
