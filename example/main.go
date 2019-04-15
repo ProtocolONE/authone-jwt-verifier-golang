@@ -16,8 +16,8 @@ import (
 )
 
 var (
-	clientID          = "5c7fd8c50dd75d000162c69f"
-	clientSecret      = "TVzu97mMqsn4bRQbgS07MdIuf3TMgZHEm0fjKWWP5DvzppyTtXA8sgQtqazr91zq"
+	clientID          = "5cb26c6592e0d90001683757"
+	clientSecret      = "eUvn3orwIhXp7jY1QLOuFO1Z1ZqSkJWJx3yLoXbwP2pJeWbcnlM3uHR5XjRz4DUF"
 	scopes            = []string{"openid", "offline"}
 	responseType      = "code"
 	redirectUri       = "http://127.0.0.1:1323/auth/callback"
@@ -95,6 +95,8 @@ func main() {
 	e.GET("/logout", logout)
 	// Logout callback for clean local tokens, session and etc.
 	e.GET("/logout_result", logoutResult)
+	// Logout callback for clean local tokens, session and etc.
+	e.GET("/introspect", introspectTest)
 
 	// Start server
 	e.Logger.Fatal(e.Start(":1323"))
@@ -257,4 +259,12 @@ func validateIdToken(c context.Context, token *jwtverifier.Token) (*jwtverifier.
 	}
 	fmt.Printf("ID token: %+v\n", t)
 	return t, nil
+}
+
+func introspectTest(ctx echo.Context) error {
+	token := ctx.QueryParam("token")
+	t, err := jwtv.Introspect(ctx.Request().Context(), token)
+	fmt.Println(t)
+	fmt.Println(err)
+	return nil
 }

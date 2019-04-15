@@ -8,7 +8,6 @@ import (
 )
 
 const (
-	ErrorTokenAdd       = "unbale to add token"
 	ErrorTokenNotExists = "token not exists"
 	ErrorTokenIsExpired = "token is expired"
 	MaxSize             = 5000
@@ -35,9 +34,7 @@ func (tsm tokenStorageMemory) Set(token string, expire int64, introspect []byte)
 		value:    introspect,
 		duration: time.Unix(expire, 0).Sub(time.Now()),
 	}
-	if false == tsm.cache.Add(token, e) {
-		return errors.New(ErrorTokenAdd)
-	}
+	tsm.cache.Add(token, e)
 	return nil
 }
 
