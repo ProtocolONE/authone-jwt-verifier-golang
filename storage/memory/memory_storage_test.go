@@ -28,11 +28,13 @@ func TestSetAndGetToken(t *testing.T) {
 func TestExpireToken(t *testing.T) {
 	st := createStorage(1)
 	tName := fmt.Sprintf("%d", time.Now().UnixNano())
-	exp := time.Now().Add(time.Second).Unix() - 1
+	exp := time.Now().Add(time.Second).Unix() + 2
 	token := []byte(tName)
 	if err := st.Set(tName, exp, token); err != nil {
 		t.Log("Unable to add token to the memory")
 	}
+
+	time.Sleep(3 * time.Second)
 
 	_, err := st.Get(tName)
 	if err == nil {

@@ -15,7 +15,7 @@ const (
 
 type entry struct {
 	value    []byte
-	duration time.Duration
+	duration time.Time
 }
 
 type tokenStorageMemory struct {
@@ -32,7 +32,7 @@ func NewStorage(maxSize int) storage.Adapter {
 func (tsm tokenStorageMemory) Set(token string, expire int64, introspect []byte) error {
 	e := &entry{
 		value:    introspect,
-		duration: time.Unix(expire, 0).Sub(time.Now()),
+		duration: time.Unix(expire, 0),
 	}
 	tsm.cache.Add(token, e)
 	return nil
@@ -41,8 +41,7 @@ func (tsm tokenStorageMemory) Set(token string, expire int64, introspect []byte)
 func (tsm tokenStorageMemory) Get(token string) ([]byte, error) {
 	if e, ok := tsm.cache.Get(token); ok {
 		entry := e.(*entry)
-		exp := time.Now().Add(entry.duration)
-		if exp.Before(time.Now()) {
+		if entry.duration.Before(time.Now()) {
 			_ = tsm.Delete(token)
 			return nil, errors.New(ErrorTokenIsExpired)
 		}
