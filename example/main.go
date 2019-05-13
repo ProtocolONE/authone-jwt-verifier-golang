@@ -58,7 +58,7 @@ func (t *Template) Render(w io.Writer, name string, data interface{}, ctx echo.C
 
 func main() {
 	t := &Template{
-		templates: template.Must(template.ParseGlob("templates/*.html")),
+		templates: template.Must(template.ParseGlob("example/templates/*.html")),
 	}
 	e := echo.New()
 	e.Renderer = t
@@ -202,7 +202,9 @@ func authCallback(c echo.Context) error {
 			fmt.Print(err)
 			payload.Error = fmt.Sprintf("Unable to validate id token: %s\n", err.Error())
 		} else {
-			payload.IdToken = *idToken
+			if idToken != nil {
+				payload.IdToken = *idToken
+			}
 		}
 	}
 
